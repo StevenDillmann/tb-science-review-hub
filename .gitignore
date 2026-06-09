@@ -427,3 +427,14 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+
+# --- Node / Vite ---
+node_modules/
+dist/
+.vite/
+*.log
+.DS_Store
+
+# Claude Code local config
+.claude/
+*.tsbuildinfo
