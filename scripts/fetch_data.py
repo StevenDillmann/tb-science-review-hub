@@ -44,6 +44,13 @@ SCIENTIFIC_DOMAIN_RE = re.compile(
     r"##\s*Scientific\s+Domain\s*\n+([^\n]+)", re.IGNORECASE
 )
 
+# Backfilled at the top of every proposal body: `**Proposed by @handle**`.
+# Lets us attribute proposals to the original Airtable submitter rather than
+# the GitHub account that posted the discussion on their behalf.
+PROPOSED_BY_RE = re.compile(
+    r"\*\*\s*Proposed by\s*@([A-Za-z0-9-]+)\s*\*\*", re.IGNORECASE
+)
+
 
 def gh(args: list[str]) -> str:
     res = subprocess.run(["gh", *args], capture_output=True, text=True, check=False)
@@ -247,10 +254,10 @@ def field_from_proposal_body(
 PR_QUERY = """
 query($owner:String!,$name:String!,$cursor:String){
   repository(owner:$owner,name:$name){
-    pullRequests(states:OPEN,first:50,after:$cursor,orderBy:{field:UPDATED_AT,direction:DESC}){
+    pullRequests(states:[OPEN,CLOSED,MERGED],first:50,after:$cursor,orderBy:{field:UPDATED_AT,direction:DESC}){
       pageInfo{ hasNextPage endCursor }
       nodes{
-        number title url isDraft createdAt updatedAt
+        number title url isDraft state mergedAt closedAt createdAt updatedAt
         author{ login ... on User { avatarUrl } }
         labels(first:30){ nodes{ name color } }
         reviewRequests(first:10){
@@ -261,7 +268,7 @@ query($owner:String!,$name:String!,$cursor:String){
           }
         }
         files(first:100){
-          nodes{ path }
+          nodes{ path changeType }
         }
         commits(last:1){
           nodes{
@@ -293,9 +300,10 @@ query($owner:String!,$name:String!,$cursor:String){
 """
 
 
-def paged(query: str, key: str) -> list[dict[str, Any]]:
+def paged(query: str, key: str, max_pages: int | None = None) -> list[dict[str, Any]]:
     out: list[dict[str, Any]] = []
     cursor: str | None = None
+    pages = 0
     while True:
         variables: dict[str, Any] = {"owner": UPSTREAM_OWNER, "name": UPSTREAM_NAME}
         if cursor:
@@ -303,7 +311,10 @@ def paged(query: str, key: str) -> list[dict[str, Any]]:
         data = graphql(query, variables)
         block = data["data"]["repository"][key]
         out.extend(block["nodes"])
+        pages += 1
         if not block["pageInfo"]["hasNextPage"]:
+            break
+        if max_pages is not None and pages >= max_pages:
             break
         cursor = block["pageInfo"]["endCursor"]
     return out
@@ -318,8 +329,12 @@ def build_prs(
     rows = []
     for n in nodes:
         labels = [lab["name"] for lab in n["labels"]["nodes"]]
-        if not any(l in labels for l in ("new task", "task fix", "documentation")):
+        # Source of truth = upstream labels. Mislabeled PRs are an upstream
+        # issue to fix there, not here.
+        if "new task" not in labels:
             continue
+        file_nodes = n.get("files", {}).get("nodes", []) or []
+        files = [f["path"] for f in file_nodes]
 
         # Priority 1: file paths in the PR. Priority 2: title prefix.
         files = [f["path"] for f in n.get("files", {}).get("nodes", []) or []]
@@ -341,11 +356,13 @@ def build_prs(
         if commits and commits[0]["commit"]["statusCheckRollup"]:
             ci = commits[0]["commit"]["statusCheckRollup"]["state"].lower()
         author = n.get("author") or {}
+        state = (n.get("state") or "OPEN").lower()  # "open" | "closed" | "merged"
         rows.append({
             "number": n["number"],
             "title": n["title"],
             "url": n["url"],
             "is_draft": n["isDraft"],
+            "state": state,
             "author": {
                 "login": author.get("login", "ghost"),
                 "avatar_url": author.get("avatarUrl"),
@@ -353,15 +370,18 @@ def build_prs(
             "domain": domain,
             "subfield": subfield,
             "field": raw_field,
-            "type": derive_type(labels),
             "review_stage": derive_review_stage(labels),
-            "ball_in_court": derive_ball_in_court(labels),
-            "dri": dri,
+            "ball_in_court": derive_ball_in_court(labels) if state == "open" else None,
+            "dri": dri if state == "open" else None,
             "age_days": age_days(n["createdAt"], now),
             "updated_days": age_days(n["updatedAt"], now),
+            "merged_days": age_days(n["mergedAt"], now) if n.get("mergedAt") else None,
+            "closed_days": age_days(n["closedAt"], now) if n.get("closedAt") else None,
             "ci": ci,
             "created_at": n["createdAt"],
             "updated_at": n["updatedAt"],
+            "merged_at": n.get("mergedAt"),
+            "closed_at": n.get("closedAt"),
             "labels": labels,
         })
     return rows
@@ -388,7 +408,16 @@ def build_proposals(
             if s2:
                 domain, subfield, raw_field = d2, s2, r2
 
-        author = n.get("author") or {}
+        gh_author = n.get("author") or {}
+        # Prefer the **Proposed by @handle** attribution backfilled into the
+        # body — that's the original Airtable submitter. Fall back to the GH
+        # discussion author when no attribution line is present.
+        author_login: str = gh_author.get("login", "ghost")
+        author_avatar: str | None = gh_author.get("avatarUrl")
+        m = PROPOSED_BY_RE.search(n.get("body") or "")
+        if m:
+            author_login = m.group(1)
+            author_avatar = f"https://github.com/{author_login}.png?size=80"
         has_pr = False
         if proposal_number is not None:
             needle = f"#{proposal_number}"
@@ -400,8 +429,8 @@ def build_proposals(
             "raw_title": n["title"],
             "url": n["url"],
             "author": {
-                "login": author.get("login", "ghost"),
-                "avatar_url": author.get("avatarUrl"),
+                "login": author_login,
+                "avatar_url": author_avatar,
             },
             "domain": domain,
             "subfield": subfield,
@@ -436,6 +465,8 @@ def build_coverage(
             coverage[domain][key]["merged"] += n
 
     for pr in prs:
+        if pr.get("state") != "open":
+            continue
         d, s = pr.get("domain"), pr.get("subfield")
         if d and d in coverage:
             key = s if s and s in coverage[d] else "_unknown"
@@ -468,7 +499,10 @@ def main() -> int:
     for d in DOMAIN_LABEL_SET:
         taxonomy.setdefault(d, {})
 
-    pr_nodes = paged(PR_QUERY, "pullRequests")
+    # Cap PR pages so closed/merged history doesn't bloat the payload. 8 pages
+    # × 50 = up to 400 most-recently-updated PRs covering every open one plus
+    # plenty of recent merges/closes.
+    pr_nodes = paged(PR_QUERY, "pullRequests", max_pages=8)
     discussion_nodes = paged(DISCUSSION_QUERY, "discussions")
 
     prs = build_prs(pr_nodes, now, taxonomy, field_to_domain)
@@ -487,7 +521,9 @@ def main() -> int:
         "proposals": proposals,
         "coverage": coverage,
         "stats": {
-            "open_prs": len(prs),
+            "open_prs": sum(1 for p in prs if p["state"] == "open"),
+            "merged_prs": sum(1 for p in prs if p["state"] == "merged"),
+            "closed_prs": sum(1 for p in prs if p["state"] == "closed"),
             "open_proposals": len(proposals),
             "pending_proposals": sum(1 for p in proposals if p["status"] == "pending"),
             "needs_reviewer": sum(1 for p in prs if p["ball_in_court"] == "reviewer"),
