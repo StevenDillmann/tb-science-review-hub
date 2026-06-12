@@ -9,10 +9,9 @@ export function StatsView({ coverage, stats }: { coverage: Coverage; stats: Stat
     "life-sciences",
     "physical-sciences",
     "mathematical-sciences",
+    "other",
   ]
-  const domains = (Object.keys(taxonomy) as Domain[]).filter(
-    (d) => Object.keys(taxonomy[d]).length > 0,
-  )
+  const domains = Object.keys(taxonomy) as Domain[]
   const sortedDomains = [
     ...KNOWN_ORDER.filter((d) => domains.includes(d)),
     ...domains.filter((d) => !KNOWN_ORDER.includes(d)),
@@ -20,7 +19,7 @@ export function StatsView({ coverage, stats }: { coverage: Coverage; stats: Stat
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
-        <StatCard label="Open PRs" value={stats.open_prs} />
+        <StatCard label="Open task PRs" value={stats.open_prs} />
         <StatCard
           label="Needs reviewer"
           value={stats.needs_reviewer}
@@ -31,8 +30,8 @@ export function StatsView({ coverage, stats }: { coverage: Coverage; stats: Stat
           value={stats.needs_author}
           accent="text-violet-600"
         />
-        <StatCard label="Open proposals" value={stats.open_proposals} />
-        <StatCard label="Pending proposals" value={stats.pending_proposals} />
+        <StatCard label="Open task proposals" value={stats.open_proposals} />
+        <StatCard label="Pending task proposals" value={stats.pending_proposals} />
       </div>
 
       <section className="rounded-lg border">
@@ -84,16 +83,21 @@ function DomainRow({
   coverage: Record<string, { merged: number; in_review: number; proposed: number }>
 }) {
   const { field_labels } = useTaxonomy()
+  // When a domain has no discovered subfields (e.g. `other`), surface a single
+  // row using the `_unknown` bucket so the domain is still visible.
+  const rows = subfields.length > 0 ? subfields : ["_unknown"]
   return (
     <div className="grid grid-cols-1 gap-4 px-4 py-3 md:grid-cols-[180px_1fr]">
       <div className="font-medium">{DOMAIN_LABELS[domain] ?? domain}</div>
       <div className="grid gap-1">
-        {subfields.map((sub) => {
+        {rows.map((sub) => {
           const c = coverage[sub] ?? { merged: 0, in_review: 0, proposed: 0 }
           const total = c.merged + c.in_review + c.proposed
+          const label =
+            sub === "_unknown" ? "(uncategorized)" : (field_labels[sub] ?? sub)
           return (
             <div key={sub} className="grid grid-cols-[180px_1fr_auto] items-center gap-3 text-sm">
-              <span className="font-medium">{field_labels[sub] ?? sub}</span>
+              <span className="font-medium">{label}</span>
               <CoverageBar merged={c.merged} inReview={c.in_review} proposed={c.proposed} />
               <span className="font-mono text-xs text-muted-foreground">
                 {c.merged}m · {c.in_review}r · {c.proposed}p {total === 0 && "· gap"}
@@ -119,7 +123,7 @@ function CoverageBar({
   if (total === 0) {
     return (
       <div className="h-2 rounded bg-muted">
-        <div className="h-full w-full rounded bg-[repeating-linear-gradient(45deg,transparent_0,transparent_4px,hsl(var(--muted-foreground)/0.15)_4px,hsl(var(--muted-foreground)/0.15)_8px)]" />
+        <div className="h-full w-full rounded bg-[repeating-linear-gradient(45deg,transparent_0,transparent_4px,color-mix(in_oklab,var(--muted-foreground)_15%,transparent)_4px,color-mix(in_oklab,var(--muted-foreground)_15%,transparent)_8px)]" />
       </div>
     )
   }

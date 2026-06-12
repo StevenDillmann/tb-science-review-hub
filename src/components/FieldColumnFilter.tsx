@@ -11,7 +11,11 @@ const KNOWN_ORDER: Domain[] = [
   "life-sciences",
   "physical-sciences",
   "mathematical-sciences",
+  "other",
 ]
+
+const DOMAIN_SENTINEL_PREFIX = "__domain:"
+const domainSentinel = (d: string) => `${DOMAIN_SENTINEL_PREFIX}${d}`
 
 /**
  * Field filter popover with options grouped by parent domain. Used as the
@@ -29,16 +33,22 @@ export function FieldColumnFilter({
   const [open, setOpen] = useState(false)
   const { taxonomy, field_labels } = useTaxonomy()
 
-  const domains = (Object.keys(taxonomy) as Domain[]).filter(
-    (d) => Object.keys(taxonomy[d]).length > 0,
-  )
+  const domains = Object.keys(taxonomy) as Domain[]
   const sortedDomains = [
     ...KNOWN_ORDER.filter((d) => domains.includes(d)),
     ...domains.filter((d) => !KNOWN_ORDER.includes(d)),
   ]
 
   const active = value !== null
-  const activeLabel = value ? (field_labels[value] ?? value) : null
+  let activeLabel: string | null = null
+  if (value) {
+    if (value.startsWith(DOMAIN_SENTINEL_PREFIX)) {
+      const dom = value.slice(DOMAIN_SENTINEL_PREFIX.length) as Domain
+      activeLabel = `${DOMAIN_LABELS[dom] ?? dom} (uncategorized)`
+    } else {
+      activeLabel = field_labels[value] ?? value
+    }
+  }
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -78,37 +88,71 @@ export function FieldColumnFilter({
           </button>
         )}
         <div className="max-h-72 overflow-y-auto py-1">
-          {sortedDomains.map((domain) => (
-            <div key={domain}>
-              <div className="px-3 pt-2 pb-1 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
-                {DOMAIN_LABELS[domain] ?? domain}
-              </div>
-              {Object.keys(taxonomy[domain]).map((sub) => {
-                const n = counts?.[sub]
-                return (
+          {sortedDomains.map((domain) => {
+            const subs = Object.keys(taxonomy[domain])
+            // Domains with no discovered subfields (e.g. `other`) get a single
+            // selectable "(uncategorized)" entry that filters by domain.
+            if (subs.length === 0) {
+              const sentinel = domainSentinel(domain)
+              const n = counts?.[sentinel]
+              return (
+                <div key={domain}>
+                  <div className="px-3 pt-2 pb-1 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                    {DOMAIN_LABELS[domain] ?? domain}
+                  </div>
                   <button
-                    key={sub}
                     type="button"
                     onClick={() => {
-                      onChange(sub === value ? null : sub)
+                      onChange(sentinel === value ? null : sentinel)
                       setOpen(false)
                     }}
                     className={cn(
-                      "flex w-full items-center justify-between gap-2 px-3 py-1.5 text-left text-sm hover:bg-accent",
-                      value === sub && "bg-accent font-medium",
+                      "flex w-full items-center justify-between gap-2 px-3 py-1.5 text-left text-sm italic text-muted-foreground hover:bg-accent",
+                      value === sentinel && "bg-accent font-medium not-italic text-foreground",
                     )}
                   >
-                    <span className="truncate">{field_labels[sub] ?? sub}</span>
+                    <span className="truncate">(uncategorized)</span>
                     {n !== undefined && (
                       <span className="font-mono text-[10px] text-muted-foreground">
                         {n}
                       </span>
                     )}
                   </button>
-                )
-              })}
-            </div>
-          ))}
+                </div>
+              )
+            }
+            return (
+              <div key={domain}>
+                <div className="px-3 pt-2 pb-1 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                  {DOMAIN_LABELS[domain] ?? domain}
+                </div>
+                {subs.map((sub) => {
+                  const n = counts?.[sub]
+                  return (
+                    <button
+                      key={sub}
+                      type="button"
+                      onClick={() => {
+                        onChange(sub === value ? null : sub)
+                        setOpen(false)
+                      }}
+                      className={cn(
+                        "flex w-full items-center justify-between gap-2 px-3 py-1.5 text-left text-sm hover:bg-accent",
+                        value === sub && "bg-accent font-medium",
+                      )}
+                    >
+                      <span className="truncate">{field_labels[sub] ?? sub}</span>
+                      {n !== undefined && (
+                        <span className="font-mono text-[10px] text-muted-foreground">
+                          {n}
+                        </span>
+                      )}
+                    </button>
+                  )
+                })}
+              </div>
+            )
+          })}
         </div>
       </PopoverContent>
     </Popover>

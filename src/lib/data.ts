@@ -8,25 +8,32 @@ export type Domain =
   | "life-sciences"
   | "physical-sciences"
   | "mathematical-sciences"
+  | "other"
+
+export type PRState = "open" | "closed" | "merged"
 
 export type PR = {
   number: number
   title: string
   url: string
   is_draft: boolean
+  state: PRState
   author: User
   domain: Domain | null
   subfield: string | null
   field: string | null
-  type: "new task" | "task fix" | "documentation" | "other"
   review_stage: "1st" | "2nd" | "3rd" | "none"
   ball_in_court: "reviewer" | "author" | null
   dri: User | null
   age_days: number
   updated_days: number
+  merged_days: number | null
+  closed_days: number | null
   ci: string | null
   created_at: string
   updated_at: string
+  merged_at: string | null
+  closed_at: string | null
   labels: string[]
 }
 
@@ -56,6 +63,8 @@ export type Coverage = Record<
 
 export type Stats = {
   open_prs: number
+  merged_prs: number
+  closed_prs: number
   open_proposals: number
   pending_proposals: number
   needs_reviewer: number
@@ -82,17 +91,19 @@ export async function loadData(): Promise<Data> {
 }
 
 export const DOMAIN_LABELS: Record<Domain, string> = {
-  "earth-sciences": "Earth",
-  "life-sciences": "Life",
-  "physical-sciences": "Physical",
-  "mathematical-sciences": "Mathematical",
+  "earth-sciences": "Earth Sciences",
+  "life-sciences": "Life Sciences",
+  "physical-sciences": "Physical Sciences",
+  "mathematical-sciences": "Mathematical Sciences",
+  "other": "Other",
 }
 
 export const DOMAIN_COLORS: Record<Domain, string> = {
-  "earth-sciences": "bg-emerald-100 text-emerald-900 dark:bg-emerald-900/40 dark:text-emerald-100",
-  "life-sciences": "bg-rose-100 text-rose-900 dark:bg-rose-900/40 dark:text-rose-100",
-  "physical-sciences": "bg-sky-100 text-sky-900 dark:bg-sky-900/40 dark:text-sky-100",
-  "mathematical-sciences": "bg-amber-100 text-amber-900 dark:bg-amber-900/40 dark:text-amber-100",
+  "earth-sciences": "bg-blue-100 text-blue-900 dark:bg-blue-900/40 dark:text-blue-100",
+  "life-sciences": "bg-green-100 text-green-900 dark:bg-green-900/40 dark:text-green-100",
+  "physical-sciences": "bg-red-100 text-red-900 dark:bg-red-900/40 dark:text-red-100",
+  "mathematical-sciences": "bg-yellow-100 text-yellow-900 dark:bg-yellow-900/40 dark:text-yellow-100",
+  "other": "bg-zinc-200 text-zinc-900 dark:bg-zinc-700 dark:text-zinc-100",
 }
 
 // Field labels and field→domain mapping are now provided by the data payload

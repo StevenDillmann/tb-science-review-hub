@@ -1,16 +1,23 @@
 import { useEffect, useState } from "react"
-import { AlertCircle, Github, Loader2, RefreshCw } from "lucide-react"
+import { AlertCircle, Globe, Loader2 } from "lucide-react"
+
+import logoLight from "@/assets/tb-science-logo-light.png"
+import logoDark from "@/assets/tb-science-logo-dark.png"
 
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { PRsTable } from "@/components/PRsTable"
 import { ProposalsTable } from "@/components/ProposalsTable"
 import { StatsView } from "@/components/StatsView"
+import { ThemeToggle } from "@/components/ThemeToggle"
+import { DiscordIcon, GitHubIcon } from "@/components/icons"
 import { loadData, type Data } from "@/lib/data"
 import { TaxonomyProvider } from "@/lib/taxonomy"
+import { useTheme } from "@/lib/theme"
 
 const UPSTREAM = "harbor-framework/terminal-bench-science"
+const DISCORD_URL = "https://discord.gg/2Pe5uWGcV3"
+const WEBSITE_URL = "https://www.tbench.ai/news/tb-science-announcement"
 
 function formatGeneratedAt(iso: string): string {
   const d = new Date(iso)
@@ -25,35 +32,32 @@ function formatGeneratedAt(iso: string): string {
 export default function App() {
   const [data, setData] = useState<Data | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [loading, setLoading] = useState(false)
-
-  const refresh = async () => {
-    setLoading(true)
-    setError(null)
-    try {
-      setData(await loadData())
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e))
-    } finally {
-      setLoading(false)
-    }
-  }
+  const { resolved } = useTheme()
 
   useEffect(() => {
-    refresh()
+    loadData()
+      .then(setData)
+      .catch((e) => setError(e instanceof Error ? e.message : String(e)))
   }, [])
 
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b">
         <div className="container mx-auto flex flex-col gap-3 px-6 py-4 md:flex-row md:items-center md:justify-between">
-          <div>
-            <h1 className="text-xl font-semibold tracking-tight">
-              TB-Science Review Hub
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              Task PR + proposal tracker for the Terminal-Bench Science reviewer team.
-            </p>
+          <div className="flex items-center gap-4">
+            <img
+              src={resolved === "dark" ? logoDark : logoLight}
+              alt="Terminal-Bench Science"
+              className="h-12 w-auto"
+            />
+            <div>
+              <h1 className="text-xl font-semibold tracking-tight">
+                Terminal-Bench Science · Review Hub
+              </h1>
+              <p className="text-sm text-muted-foreground">
+                Task proposal and pull requests for Terminal-Bench Science.
+              </p>
+            </div>
           </div>
           <div className="flex flex-wrap items-center gap-3">
             {data && (
@@ -61,22 +65,36 @@ export default function App() {
                 updated {formatGeneratedAt(data.generated_at)}
               </span>
             )}
-            <Button variant="outline" size="sm" onClick={refresh} disabled={loading}>
-              {loading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <RefreshCw className="h-4 w-4" />
-              )}
-              Refresh
-            </Button>
+            <ThemeToggle />
+            <a
+              href={WEBSITE_URL}
+              target="_blank"
+              rel="noreferrer"
+              title="Terminal-Bench Science announcement"
+              aria-label="Terminal-Bench Science announcement on tbench.ai"
+              className="text-muted-foreground transition-colors hover:text-foreground"
+            >
+              <Globe className="h-5 w-5" />
+            </a>
             <a
               href={`https://github.com/${UPSTREAM}`}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
+              title={UPSTREAM}
+              aria-label="GitHub repository"
+              className="text-muted-foreground transition-colors hover:text-foreground"
             >
-              <Github className="h-4 w-4" />
-              {UPSTREAM}
+              <GitHubIcon className="h-5 w-5" />
+            </a>
+            <a
+              href={DISCORD_URL}
+              target="_blank"
+              rel="noreferrer"
+              title="Terminal-Bench Discord"
+              aria-label="Discord"
+              className="text-muted-foreground transition-colors hover:text-foreground"
+            >
+              <DiscordIcon className="h-5 w-5" />
             </a>
           </div>
         </div>
@@ -109,28 +127,28 @@ export default function App() {
               field_to_domain: data.field_to_domain,
             }}
           >
-            <Tabs defaultValue="prs">
+            <Tabs defaultValue="proposals">
               <TabsList>
-                <TabsTrigger value="prs">
-                  PRs
-                  <Badge variant="secondary" className="ml-2">
-                    {data.stats.open_prs}
-                  </Badge>
-                </TabsTrigger>
                 <TabsTrigger value="proposals">
-                  Proposals
+                  Task Proposals
                   <Badge variant="secondary" className="ml-2">
                     {data.stats.open_proposals}
+                  </Badge>
+                </TabsTrigger>
+                <TabsTrigger value="prs">
+                  Task Pull Requests
+                  <Badge variant="secondary" className="ml-2">
+                    {data.stats.open_prs}
                   </Badge>
                 </TabsTrigger>
                 <TabsTrigger value="stats">Stats</TabsTrigger>
               </TabsList>
 
-              <TabsContent value="prs" className="mt-6">
-                <PRsTable prs={data.prs} />
-              </TabsContent>
               <TabsContent value="proposals" className="mt-6">
                 <ProposalsTable proposals={data.proposals} />
+              </TabsContent>
+              <TabsContent value="prs" className="mt-6">
+                <PRsTable prs={data.prs} />
               </TabsContent>
               <TabsContent value="stats" className="mt-6">
                 <StatsView coverage={data.coverage} stats={data.stats} />

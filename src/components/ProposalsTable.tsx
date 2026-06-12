@@ -7,7 +7,7 @@ import {
   type ColumnDef,
   type SortingState,
 } from "@tanstack/react-table"
-import { ArrowUpDown, Check, ExternalLink, X } from "lucide-react"
+import { ArrowUpDown, Check, ExternalLink, Plus, X } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -58,7 +58,11 @@ export function ProposalsTable({ proposals }: { proposals: Proposal[] }) {
   const filtered = useMemo(() => {
     const needle = search.toLowerCase().trim()
     return proposals.filter((p) => {
-      if (field && p.subfield !== field) return false
+      if (field) {
+        if (field.startsWith("__domain:")) {
+          if (p.domain !== field.slice("__domain:".length)) return false
+        } else if (p.subfield !== field) return false
+      }
       if (status && p.status !== status) return false
       if (hasPR === "yes" && !p.has_pr) return false
       if (hasPR === "no" && p.has_pr) return false
@@ -71,7 +75,16 @@ export function ProposalsTable({ proposals }: { proposals: Proposal[] }) {
     })
   }, [proposals, search, field, status, hasPR, author])
 
-  const fieldCounts = useMemo(() => countBy(proposals, (p) => p.subfield), [proposals])
+  const fieldCounts = useMemo(() => {
+    const c = countBy(proposals, (p) => p.subfield)
+    for (const p of proposals) {
+      if (!p.subfield && p.domain) {
+        const key = `__domain:${p.domain}`
+        c[key] = (c[key] ?? 0) + 1
+      }
+    }
+    return c
+  }, [proposals])
   const authorOptions = useMemo(() => {
     const c = countBy(proposals, (p) => p.author.login)
     return Object.entries(c)
@@ -200,11 +213,11 @@ export function ProposalsTable({ proposals }: { proposals: Proposal[] }) {
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center gap-3 rounded-lg border bg-muted/30 p-3">
+      <div className="flex flex-wrap items-center gap-3 rounded-lg border bg-muted/30 p-3">
         <SearchInput
           value={search}
           onChange={setSearch}
-          placeholder="Search title, author, field…"
+          placeholder="Search"
           className="max-w-md"
         />
         {anyFilter && (
@@ -223,9 +236,15 @@ export function ProposalsTable({ proposals }: { proposals: Proposal[] }) {
             Clear filters
           </Button>
         )}
-        <div className="ml-auto text-xs text-muted-foreground">
-          {filtered.length} of {proposals.length} proposals
-        </div>
+        <a
+          href="https://airtable.com/appzZC5gEHrXSfNNw/pagjgS95lAQ5FVJxt/form"
+          target="_blank"
+          rel="noreferrer"
+          className="ml-auto inline-flex items-center gap-1.5 rounded-full bg-foreground px-3 py-1 text-xs font-medium text-background transition-opacity hover:opacity-90"
+        >
+          <Plus className="h-3.5 w-3.5" />
+          Submit a proposal
+        </a>
       </div>
 
       <div className="rounded-lg border">
@@ -247,7 +266,7 @@ export function ProposalsTable({ proposals }: { proposals: Proposal[] }) {
             {table.getRowModel().rows.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={columns.length} className="h-24 text-center text-muted-foreground">
-                  No proposals match these filters.
+                  No task proposals match these filters.
                 </TableCell>
               </TableRow>
             ) : (

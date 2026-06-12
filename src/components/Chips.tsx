@@ -71,13 +71,18 @@ export function FieldChip({
   if (subfield && field_labels[subfield]) {
     const domain = field_to_domain[subfield]
     body = (
-      <Badge className={cn("border-transparent font-medium", DOMAIN_COLORS[domain])}>
+      <Badge
+        className={cn(
+          "whitespace-nowrap border-transparent font-medium",
+          DOMAIN_COLORS[domain],
+        )}
+      >
         {field_labels[subfield]}
       </Badge>
     )
   } else if (fallback) {
     body = (
-      <Badge variant="outline" className="text-muted-foreground">
+      <Badge variant="outline" className="whitespace-nowrap text-muted-foreground">
         {fallback}
       </Badge>
     )
