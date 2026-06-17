@@ -1,4 +1,4 @@
-# tb-science-review-hub
+# tb-science-task-dashboard
 
 A public, auto-refreshing dashboard for the Terminal-Bench Science reviewer team — see open task PRs and proposals from [`harbor-framework/terminal-bench-science`](https://github.com/harbor-framework/terminal-bench-science) at a glance.
 

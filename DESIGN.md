@@ -1,4 +1,4 @@
-# tb-science-review-hub — Design
+# tb-science-task-dashboard — Design
 
 A public, auto-refreshing dashboard that gives the Terminal-Bench Science reviewer team a single place to see open task PRs and task proposals, and gives the wider community visibility into what domains are covered or under-served.
 
@@ -13,7 +13,7 @@ Non-goals: this is read-only. Reviews, approvals, and labeling still happen on G
 ## Architecture
 
 ```
-tb-science-review-hub/  (this repo, public)
+tb-science-task-dashboard/  (this repo, public)
 ├─ .github/workflows/
 │   └─ rebuild.yml          cron */15min + workflow_dispatch
 ├─ scripts/
