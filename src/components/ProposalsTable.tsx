@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import {
   flexRender,
   getCoreRowModel,
@@ -159,7 +159,17 @@ function countBy<T>(items: T[], key: (t: T) => string | null): Record<string, nu
   return out
 }
 
-export function ProposalsTable({ proposals }: { proposals: Proposal[] }) {
+export function ProposalsTable({
+  proposals,
+  externalField,
+  externalStatus,
+  onExternalFieldConsumed,
+}: {
+  proposals: Proposal[]
+  externalField?: string | null
+  externalStatus?: "approved" | "pending" | "rejected" | null
+  onExternalFieldConsumed?: () => void
+}) {
   const { field_labels } = useTaxonomy()
   const [sorting, setSorting] = useState<SortingState>([
     // Newest first — sort by Task Proposal number descending. Avoids ties
@@ -179,6 +189,17 @@ export function ProposalsTable({ proposals }: { proposals: Proposal[] }) {
     for (const p of proposals) c[p.state] = (c[p.state] ?? 0) + 1
     return c
   }, [proposals])
+
+  // When the Stats tab forwards filters, apply them and reset state to "all"
+  // so every matching proposal shows up regardless of open/closed.
+  useEffect(() => {
+    if (externalField || externalStatus) {
+      if (externalField) setField(externalField)
+      setHuman(externalStatus ?? null)
+      setState("all")
+      onExternalFieldConsumed?.()
+    }
+  }, [externalField, externalStatus, onExternalFieldConsumed])
 
   const filtered = useMemo(() => {
     const needle = search.toLowerCase().trim()

@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-06-17T04:29:27.797936+00:00",
+  "generated_at": "2026-06-17T05:59:30.801292+00:00",
   "upstream": "harbor-framework/terminal-bench-science",
   "taxonomy": {
     "earth-sciences": {
@@ -20,7 +20,11 @@
       "scientific-computing": [],
       "statistics": []
     },
-    "other": {},
+    "other": {
+      "engineering-sciences": [],
+      "interdisciplinary-sciences": [],
+      "other": []
+    },
     "physical-sciences": {
       "astronomy": [],
       "chemistry": [],
@@ -41,6 +45,9 @@
     "autoformalization": "Autoformalization",
     "scientific-computing": "Scientific Computing",
     "statistics": "Statistics",
+    "engineering-sciences": "Engineering Sciences",
+    "interdisciplinary-sciences": "Interdisciplinary Sciences",
+    "other": "Other",
     "astronomy": "Astronomy",
     "chemistry": "Chemistry",
     "materials-science": "Materials Science",
@@ -59,12 +66,129 @@
     "autoformalization": "mathematical-sciences",
     "scientific-computing": "mathematical-sciences",
     "statistics": "mathematical-sciences",
+    "engineering-sciences": "other",
+    "interdisciplinary-sciences": "other",
+    "other": "other",
     "astronomy": "physical-sciences",
     "chemistry": "physical-sciences",
     "materials-science": "physical-sciences",
     "physics": "physical-sciences"
   },
   "prs": [
+    {
+      "number": 302,
+      "title": "Add dapi he cell alignment",
+      "url": "https://github.com/harbor-framework/terminal-bench-science/pull/302",
+      "is_draft": false,
+      "state": "open",
+      "author": {
+        "login": "zchxhcz1",
+        "avatar_url": "https://avatars.githubusercontent.com/u/145355243?v=4"
+      },
+      "domain": "life-sciences",
+      "subfield": "biology",
+      "field": null,
+      "review_stage": "none",
+      "ball_in_court": "reviewer",
+      "dri": {
+        "login": "k-rl",
+        "avatar_url": "https://avatars.githubusercontent.com/u/4045620?u=012fc8283fcbd06fb3258adc1c259f8877b9a869&v=4"
+      },
+      "age_days": 2,
+      "updated_days": 0,
+      "merged_days": null,
+      "closed_days": null,
+      "ci": "success",
+      "trials": {
+        "passed": 0,
+        "total": 2,
+        "by_model": [
+          {
+            "model": "claude",
+            "display": "anthropic/claude-opus-4-8 (claude-code)",
+            "results": [
+              "fail"
+            ]
+          },
+          {
+            "model": "gpt",
+            "display": "openai/gpt-5.5 (codex)",
+            "results": [
+              "fail"
+            ]
+          }
+        ],
+        "url": "https://github.com/harbor-framework/terminal-bench-science/pull/302#issuecomment-4706000616"
+      },
+      "rubric": {
+        "passed": 31,
+        "failed": 0,
+        "warning": 0,
+        "total": 31,
+        "url": "https://github.com/harbor-framework/terminal-bench-science/pull/302#issuecomment-4704523098"
+      },
+      "cheat": null,
+      "linked_proposal": {
+        "proposal_number": 147,
+        "discussion_number": 267,
+        "title": "Single-Cell Alignment between DAPI and H&E Histology Images",
+        "url": "https://github.com/harbor-framework/terminal-bench-science/discussions/267"
+      },
+      "body": "## Task Proposal\r\n\r\nLink to the approved task proposal (GitHub Discussion):\r\n\r\nhttps://github.com/harbor-framework/terminal-bench-science/discussions/267\r\n\r\n## Checklist\r\n\r\nThis task meets the following criteria. If it doesn't match a criterion, I've explained why below.\r\n\r\n- [X] All behavior checked in the test cases is described in the task instruction.\r\n- [X] All behavior described in the task instruction is checked in the tests.\r\n- [X] My test cases have informative docstrings that describe which behavior they check.\r\n- [X] It is hard for the agent to cheat on my task (e.g. by editing data files, looking inside files for strings that represent solutions, training on the test set, etc.).\r\n- [X] My `instruction.md` was written by a human.\r\n- [X] My `solution/solve.sh` was written by a human (with minimal help from a language model).\r\n- [X] If the agent produces structured data (e.g. it is tasked with building an API) the exact schema is described in the `instruction.md` or a separate file.\r\n- [X] If my task uses external dependencies (e.g. Docker images, pip packages, etc.) their versions are pinned to ensure reproducibility.\r\n- [X] I ran this task with a strong model (gpt 5.5) using `harbor run -p tasks/life-sciences/biology/dapi-he-alignment -a codex -m openai/gpt-5.5 -k 3`.\r\n- [X] For failing runs (expected for hard tasks), I've added an [analysis below](#agent-run-analysis) to confirm the task itself is valid.\r\n\r\n## Agent Run Analysis\r\n\r\n### Description\r\n\r\nThe agent acts as a computational pathologist aligning single cells between DAPI fluorescence and H&E histology images from three real Xenium breast cancer tissue patches. It must infer the cross-modal registration under different spatial coordinate frames with nonlinear deformations and partial tissue overlap, then produce valid one-to-one H&E-to-DAPI cell correspondences.\r\n\r\n### Why It's Difficult\r\n\r\nAdjacent 2D tissue sections are similar but do not contain perfectly identical cells, and their image appearance, orientation, dimensions, and cell counts differ obviously. The agent must recover the correct global orientation and deformation field, avoid locally plausible matches that are inconsistent with the overall tissue geometry and cell-neighborhood structure, and maintain high precision, recall and F1 when comparing inferred cell correspondences against the ground truth. This combination of multimodal image interpretation, nonrigid registration, partial-overlap reasoning, and constrained assignment is a specialist computational pathology workflow that current agents do not yet perform reliably.\r\n\r\nTask Check by claude cli Opus 4.8 max\r\n\r\n<img width=\"954\" height=\"669\" alt=\"image\" src=\"https://github.com/user-attachments/assets/44083cf1-77fd-4470-bfd2-ce313aa50320\" />\r\n\r\n<img width=\"990\" height=\"645\" alt=\"image\" src=\"https://github.com/user-attachments/assets/30bc60fc-b589-4527-8451-87cbc9e912da\" />\r\n\r\n<img width=\"989\" height=\"599\" alt=\"image\" src=\"https://github.com/user-attachments/assets/e4af23ba-9d44-40fc-a70f-52e08e44a0bb\" />\r\n\r\n## Evidence\r\n\r\n### Oracle Solution\r\n<img width=\"490\" height=\"226\" alt=\"\u5c4f\u5e55\u622a\u56fe 2026-06-15 094505\" src=\"https://github.com/user-attachments/assets/da17bf42-d6d2-4cf8-a59c-3fd6e3aa6767\" />\r\n\r\n\r\n```\r\nharbor run -p tasks/life-sciences/biology/dapi-he-alignment -a oracle -k 1 --force-build\r\n```\r\n\r\n\r\n### Frontier Model Run\r\n\r\nharbor run -p tasks/life-sciences/biology/dapi-he-alignment -a codex -m openai/gpt-5.5 -k 3\r\n\r\n<img width=\"1905\" height=\"357\" alt=\"\u5c4f\u5e55\u622a\u56fe 2026-06-15 095943\" src=\"https://github.com/user-attachments/assets/7d897263-131c-4c3f-bb60-d2ee7e576523\" />\r\n\r\n\r\n**Codex GPT-5.5 Analysis:** All three trials completed without infrastructure errors and produced schema-valid, one-to-one outputs, but none passed. The best trial achieved precision/recall/F1 of 0.567/0.321/0.410 for case 1, 0.000/0.000/0.000 for case 2, and 0.569/0.351/0.434 for case 3. Its mean precision, recall, and F1 were 0.379, 0.224, and 0.281. The failure came from incorrect registration and correspondence inference, especially a completely incorrect alignment for case 2, rather than output formatting, refusal, or timeout.\r\n\r\n**Claude**\r\nUsing claude cli opus 4.8 max\r\n\r\nRun 1\r\n<img width=\"605\" height=\"290\" alt=\"\u5c4f\u5e55\u622a\u56fe 2026-06-15 101047\" src=\"https://github.com/user-attachments/assets/3ba26022-b82f-460c-af08-e49985061dad\" />\r\n\r\nRun 2\r\n<img width=\"667\" height=\"282\" alt=\"\u5c4f\u5e55\u622a\u56fe 2026-06-15 101139\" src=\"https://github.com/user-attachments/assets/9b775f1d-bb97-466b-8b93-402e41180a33\" />\r\n\r\nRun 3\r\n<img width=\"589\" height=\"288\" alt=\"\u5c4f\u5e55\u622a\u56fe 2026-06-15 101155\" src=\"https://github.com/user-attachments/assets/ce740440-042c-475e-bd6f-5a8c2d5d6566\" />\r\n\r\n\r\n**Claude Analysis:** All three runs produced legal one-to-one result files but failed the 0.90 metric floors. Run 1 achieved mean precision/recall/F1 of 0.541/0.430/0.478, with per-case values of 0.470/0.340/0.394, 0.527/0.457/0.489, and 0.627/0.493/0.552. Run 2 achieved mean precision/recall/F1 of 0.477/0.353/0.405, and run 3 achieved 0.299/0.273/0.285. These results show partial recovery of the tissue geometry but substantial incorrect and missing correspondences. Run 3 selected a fully incorrect case 2 orientation and scored 0.000 precision, recall, and F1 for that case. These failures match the intended registration difficulty. The oracle reproducibly passes all tests, confirming that the task specification, output contract, and verifier are functional.\r\n",
+      "head_sha": "b64da238a41b1bb2f0a389739c2c622b6b14e2bb",
+      "task_dir": "tasks/life-sciences/biology/dapi-he-alignment",
+      "task_files": [
+        ".gitignore",
+        "README.md",
+        "environment/Dockerfile",
+        "environment/data/case1/dapi_cell_boundaries.csv",
+        "environment/data/case1/dapi_cells.csv",
+        "environment/data/case1/fixed_dapi.ome.tiff",
+        "environment/data/case1/he_boundaries.csv",
+        "environment/data/case1/he_cells.csv",
+        "environment/data/case1/moving_he_deformed.ome.tiff",
+        "environment/data/case2/dapi_cell_boundaries.csv",
+        "environment/data/case2/dapi_cells.csv",
+        "environment/data/case2/fixed_dapi.ome.tiff",
+        "environment/data/case2/he_boundaries.csv",
+        "environment/data/case2/he_cells.csv",
+        "environment/data/case2/moving_he_deformed.ome.tiff",
+        "environment/data/case3/dapi_cell_boundaries.csv",
+        "environment/data/case3/dapi_cells.csv",
+        "environment/data/case3/fixed_dapi.ome.tiff",
+        "environment/data/case3/he_boundaries.csv",
+        "environment/data/case3/he_cells.csv",
+        "environment/data/case3/moving_he_deformed.ome.tiff",
+        "instruction.md",
+        "solution/reference/case1/transform_1_2.json",
+        "solution/reference/case2/transform_4_1.json",
+        "solution/reference/case3/transform_2_1.json",
+        "solution/solve.py",
+        "solution/solve.sh",
+        "solution/warpy_transform.py",
+        "task.toml",
+        "tests/Dockerfile",
+        "tests/data/case1/dapi_cells.csv",
+        "tests/data/case1/ground_truth_pairs.csv",
+        "tests/data/case1/he_cells.csv",
+        "tests/data/case2/dapi_cells.csv",
+        "tests/data/case2/ground_truth_pairs.csv",
+        "tests/data/case2/he_cells.csv",
+        "tests/data/case3/dapi_cells.csv",
+        "tests/data/case3/ground_truth_pairs.csv",
+        "tests/data/case3/he_cells.csv",
+        "tests/test.sh",
+        "tests/test_alignment.py"
+      ],
+      "created_at": "2026-06-15T04:19:16Z",
+      "updated_at": "2026-06-17T05:05:23Z",
+      "merged_at": null,
+      "closed_at": null,
+      "labels": [
+        "new task",
+        "waiting on reviewer"
+      ]
+    },
     {
       "number": 219,
       "title": "Reinhardh/dna storage encoder decoder",
@@ -75,8 +199,8 @@
         "login": "reinhardh",
         "avatar_url": "https://avatars.githubusercontent.com/u/11717443?u=de3ed31079e2d7f06c8fe8684415da36644b3aa7&v=4"
       },
-      "domain": null,
-      "subfield": null,
+      "domain": "mathematical-sciences",
+      "subfield": "applied-mathematics",
       "field": null,
       "review_stage": "none",
       "ball_in_court": null,
@@ -147,9 +271,9 @@
         "login": "SankarSubbayya",
         "avatar_url": "https://avatars.githubusercontent.com/u/4950356?v=4"
       },
-      "domain": null,
-      "subfield": null,
-      "field": "Water Sciences",
+      "domain": "earth-sciences",
+      "subfield": "ocean-sciences",
+      "field": null,
       "review_stage": "none",
       "ball_in_court": "reviewer",
       "dri": {
@@ -236,16 +360,16 @@
         "login": "ShardulAgg",
         "avatar_url": "https://avatars.githubusercontent.com/u/60056793?u=bfb4bea97fb971c3939feb4dc46020d421cf3db2&v=4"
       },
-      "domain": null,
-      "subfield": null,
-      "field": "Chemistry & Materials",
+      "domain": "physical-sciences",
+      "subfield": "materials-science",
+      "field": null,
       "review_stage": "none",
       "ball_in_court": "reviewer",
       "dri": {
         "login": "RishiDesai",
         "avatar_url": "https://avatars.githubusercontent.com/u/13161914?u=1edd70458bd0ea0d42bbeceaee3860f895344855&v=4"
       },
-      "age_days": 15,
+      "age_days": 16,
       "updated_days": 0,
       "merged_days": null,
       "closed_days": null,
@@ -333,8 +457,8 @@
         "login": "Kalyan0821",
         "avatar_url": "https://avatars.githubusercontent.com/u/55312432?v=4"
       },
-      "domain": null,
-      "subfield": null,
+      "domain": "physical-sciences",
+      "subfield": "materials-science",
       "field": null,
       "review_stage": "none",
       "ball_in_court": "reviewer",
@@ -449,7 +573,7 @@
         "login": "AllenGrahamHart",
         "avatar_url": "https://avatars.githubusercontent.com/u/216503854?u=9e25e50782731d755d762fce91407f6173e9ef3c&v=4"
       },
-      "age_days": 3,
+      "age_days": 4,
       "updated_days": 0,
       "merged_days": null,
       "closed_days": null,
@@ -673,120 +797,6 @@
       ]
     },
     {
-      "number": 302,
-      "title": "Add dapi he cell alignment",
-      "url": "https://github.com/harbor-framework/terminal-bench-science/pull/302",
-      "is_draft": false,
-      "state": "open",
-      "author": {
-        "login": "zchxhcz1",
-        "avatar_url": "https://avatars.githubusercontent.com/u/145355243?v=4"
-      },
-      "domain": "life-sciences",
-      "subfield": "biology",
-      "field": null,
-      "review_stage": "none",
-      "ball_in_court": "reviewer",
-      "dri": {
-        "login": "k-rl",
-        "avatar_url": "https://avatars.githubusercontent.com/u/4045620?u=012fc8283fcbd06fb3258adc1c259f8877b9a869&v=4"
-      },
-      "age_days": 2,
-      "updated_days": 0,
-      "merged_days": null,
-      "closed_days": null,
-      "ci": "success",
-      "trials": {
-        "passed": 0,
-        "total": 2,
-        "by_model": [
-          {
-            "model": "claude",
-            "display": "anthropic/claude-opus-4-8 (claude-code)",
-            "results": [
-              "fail"
-            ]
-          },
-          {
-            "model": "gpt",
-            "display": "openai/gpt-5.5 (codex)",
-            "results": [
-              "fail"
-            ]
-          }
-        ],
-        "url": "https://github.com/harbor-framework/terminal-bench-science/pull/302#issuecomment-4706000616"
-      },
-      "rubric": {
-        "passed": 31,
-        "failed": 0,
-        "warning": 0,
-        "total": 31,
-        "url": "https://github.com/harbor-framework/terminal-bench-science/pull/302#issuecomment-4704523098"
-      },
-      "cheat": null,
-      "linked_proposal": {
-        "proposal_number": 147,
-        "discussion_number": 267,
-        "title": "Single-Cell Alignment between DAPI and H&E Histology Images",
-        "url": "https://github.com/harbor-framework/terminal-bench-science/discussions/267"
-      },
-      "body": "## Task Proposal\r\n\r\nLink to the approved task proposal (GitHub Discussion):\r\n\r\nhttps://github.com/harbor-framework/terminal-bench-science/discussions/267\r\n\r\n## Checklist\r\n\r\nThis task meets the following criteria. If it doesn't match a criterion, I've explained why below.\r\n\r\n- [X] All behavior checked in the test cases is described in the task instruction.\r\n- [X] All behavior described in the task instruction is checked in the tests.\r\n- [X] My test cases have informative docstrings that describe which behavior they check.\r\n- [X] It is hard for the agent to cheat on my task (e.g. by editing data files, looking inside files for strings that represent solutions, training on the test set, etc.).\r\n- [X] My `instruction.md` was written by a human.\r\n- [X] My `solution/solve.sh` was written by a human (with minimal help from a language model).\r\n- [X] If the agent produces structured data (e.g. it is tasked with building an API) the exact schema is described in the `instruction.md` or a separate file.\r\n- [X] If my task uses external dependencies (e.g. Docker images, pip packages, etc.) their versions are pinned to ensure reproducibility.\r\n- [X] I ran this task with a strong model (gpt 5.5) using `harbor run -p tasks/life-sciences/biology/dapi-he-alignment -a codex -m openai/gpt-5.5 -k 3`.\r\n- [X] For failing runs (expected for hard tasks), I've added an [analysis below](#agent-run-analysis) to confirm the task itself is valid.\r\n\r\n## Agent Run Analysis\r\n\r\n### Description\r\n\r\nThe agent acts as a computational pathologist aligning single cells between DAPI fluorescence and H&E histology images from three real Xenium breast cancer tissue patches. It must infer the cross-modal registration under different spatial coordinate frames with nonlinear deformations and partial tissue overlap, then produce valid one-to-one H&E-to-DAPI cell correspondences.\r\n\r\n### Why It's Difficult\r\n\r\nAdjacent 2D tissue sections are similar but do not contain perfectly identical cells, and their image appearance, orientation, dimensions, and cell counts differ obviously. The agent must recover the correct global orientation and deformation field, avoid locally plausible matches that are inconsistent with the overall tissue geometry and cell-neighborhood structure, and maintain high precision, recall and F1 when comparing inferred cell correspondences against the ground truth. This combination of multimodal image interpretation, nonrigid registration, partial-overlap reasoning, and constrained assignment is a specialist computational pathology workflow that current agents do not yet perform reliably.\r\n\r\nTask Check by claude cli Opus 4.8 max\r\n\r\n<img width=\"954\" height=\"669\" alt=\"image\" src=\"https://github.com/user-attachments/assets/44083cf1-77fd-4470-bfd2-ce313aa50320\" />\r\n\r\n<img width=\"990\" height=\"645\" alt=\"image\" src=\"https://github.com/user-attachments/assets/30bc60fc-b589-4527-8451-87cbc9e912da\" />\r\n\r\n<img width=\"989\" height=\"599\" alt=\"image\" src=\"https://github.com/user-attachments/assets/e4af23ba-9d44-40fc-a70f-52e08e44a0bb\" />\r\n\r\n## Evidence\r\n\r\n### Oracle Solution\r\n<img width=\"490\" height=\"226\" alt=\"\u5c4f\u5e55\u622a\u56fe 2026-06-15 094505\" src=\"https://github.com/user-attachments/assets/da17bf42-d6d2-4cf8-a59c-3fd6e3aa6767\" />\r\n\r\n\r\n```\r\nharbor run -p tasks/life-sciences/biology/dapi-he-alignment -a oracle -k 1 --force-build\r\n```\r\n\r\n\r\n### Frontier Model Run\r\n\r\nharbor run -p tasks/life-sciences/biology/dapi-he-alignment -a codex -m openai/gpt-5.5 -k 3\r\n\r\n<img width=\"1905\" height=\"357\" alt=\"\u5c4f\u5e55\u622a\u56fe 2026-06-15 095943\" src=\"https://github.com/user-attachments/assets/7d897263-131c-4c3f-bb60-d2ee7e576523\" />\r\n\r\n\r\n**Codex GPT-5.5 Analysis:** All three trials completed without infrastructure errors and produced schema-valid, one-to-one outputs, but none passed. The best trial achieved precision/recall/F1 of 0.567/0.321/0.410 for case 1, 0.000/0.000/0.000 for case 2, and 0.569/0.351/0.434 for case 3. Its mean precision, recall, and F1 were 0.379, 0.224, and 0.281. The failure came from incorrect registration and correspondence inference, especially a completely incorrect alignment for case 2, rather than output formatting, refusal, or timeout.\r\n\r\n**Claude**\r\nUsing claude cli opus 4.8 max\r\n\r\nRun 1\r\n<img width=\"605\" height=\"290\" alt=\"\u5c4f\u5e55\u622a\u56fe 2026-06-15 101047\" src=\"https://github.com/user-attachments/assets/3ba26022-b82f-460c-af08-e49985061dad\" />\r\n\r\nRun 2\r\n<img width=\"667\" height=\"282\" alt=\"\u5c4f\u5e55\u622a\u56fe 2026-06-15 101139\" src=\"https://github.com/user-attachments/assets/9b775f1d-bb97-466b-8b93-402e41180a33\" />\r\n\r\nRun 3\r\n<img width=\"589\" height=\"288\" alt=\"\u5c4f\u5e55\u622a\u56fe 2026-06-15 101155\" src=\"https://github.com/user-attachments/assets/ce740440-042c-475e-bd6f-5a8c2d5d6566\" />\r\n\r\n\r\n**Claude Analysis:** All three runs produced legal one-to-one result files but failed the 0.90 metric floors. Run 1 achieved mean precision/recall/F1 of 0.541/0.430/0.478, with per-case values of 0.470/0.340/0.394, 0.527/0.457/0.489, and 0.627/0.493/0.552. Run 2 achieved mean precision/recall/F1 of 0.477/0.353/0.405, and run 3 achieved 0.299/0.273/0.285. These results show partial recovery of the tissue geometry but substantial incorrect and missing correspondences. Run 3 selected a fully incorrect case 2 orientation and scored 0.000 precision, recall, and F1 for that case. These failures match the intended registration difficulty. The oracle reproducibly passes all tests, confirming that the task specification, output contract, and verifier are functional.\r\n",
-      "head_sha": "453f5174f9efd15c43d20b4e9b1e64e5af924986",
-      "task_dir": "tasks/life-sciences/biology/dapi-he-alignment",
-      "task_files": [
-        ".gitignore",
-        "README.md",
-        "environment/Dockerfile",
-        "environment/data/case1/dapi_cell_boundaries.csv",
-        "environment/data/case1/dapi_cells.csv",
-        "environment/data/case1/fixed_dapi.ome.tiff",
-        "environment/data/case1/he_boundaries.csv",
-        "environment/data/case1/he_cells.csv",
-        "environment/data/case1/moving_he_deformed.ome.tiff",
-        "environment/data/case2/dapi_cell_boundaries.csv",
-        "environment/data/case2/dapi_cells.csv",
-        "environment/data/case2/fixed_dapi.ome.tiff",
-        "environment/data/case2/he_boundaries.csv",
-        "environment/data/case2/he_cells.csv",
-        "environment/data/case2/moving_he_deformed.ome.tiff",
-        "environment/data/case3/dapi_cell_boundaries.csv",
-        "environment/data/case3/dapi_cells.csv",
-        "environment/data/case3/fixed_dapi.ome.tiff",
-        "environment/data/case3/he_boundaries.csv",
-        "environment/data/case3/he_cells.csv",
-        "environment/data/case3/moving_he_deformed.ome.tiff",
-        "instruction.md",
-        "solution/reference/case1/transform_1_2.json",
-        "solution/reference/case2/transform_4_1.json",
-        "solution/reference/case3/transform_2_1.json",
-        "solution/solve.py",
-        "solution/solve.sh",
-        "solution/warpy_transform.py",
-        "task.toml",
-        "tests/Dockerfile",
-        "tests/data/case1/dapi_cells.csv",
-        "tests/data/case1/ground_truth_pairs.csv",
-        "tests/data/case1/he_cells.csv",
-        "tests/data/case2/dapi_cells.csv",
-        "tests/data/case2/ground_truth_pairs.csv",
-        "tests/data/case2/he_cells.csv",
-        "tests/data/case3/dapi_cells.csv",
-        "tests/data/case3/ground_truth_pairs.csv",
-        "tests/data/case3/he_cells.csv",
-        "tests/test.sh",
-        "tests/test_alignment.py"
-      ],
-      "created_at": "2026-06-15T04:19:16Z",
-      "updated_at": "2026-06-16T19:41:57Z",
-      "merged_at": null,
-      "closed_at": null,
-      "labels": [
-        "new task",
-        "waiting on reviewer"
-      ]
-    },
-    {
       "number": 246,
       "title": "[TASK: Biology] HLA class I immunopeptidome deconvolution & allele assignment",
       "url": "https://github.com/harbor-framework/terminal-bench-science/pull/246",
@@ -927,8 +937,8 @@
         "login": "xushenbo",
         "avatar_url": "https://avatars.githubusercontent.com/u/27264836?v=4"
       },
-      "domain": null,
-      "subfield": null,
+      "domain": "mathematical-sciences",
+      "subfield": "statistics",
       "field": null,
       "review_stage": "none",
       "ball_in_court": "author",
@@ -1087,8 +1097,8 @@
         "login": "xushenbo",
         "avatar_url": "https://avatars.githubusercontent.com/u/27264836?v=4"
       },
-      "domain": null,
-      "subfield": null,
+      "domain": "mathematical-sciences",
+      "subfield": "statistics",
       "field": null,
       "review_stage": "none",
       "ball_in_court": null,
@@ -1951,7 +1961,7 @@
         "login": "AllenGrahamHart",
         "avatar_url": "https://avatars.githubusercontent.com/u/216503854?u=9e25e50782731d755d762fce91407f6173e9ef3c&v=4"
       },
-      "age_days": 3,
+      "age_days": 4,
       "updated_days": 0,
       "merged_days": null,
       "closed_days": null,
@@ -2146,7 +2156,7 @@
         "login": "harshraj172",
         "avatar_url": "https://avatars.githubusercontent.com/u/64323122?u=83f648276546de4f961423271c57e816ed0d80d5&v=4"
       },
-      "age_days": 74,
+      "age_days": 75,
       "updated_days": 4,
       "merged_days": null,
       "closed_days": null,
@@ -3607,9 +3617,9 @@
         "login": "SankarSubbayya",
         "avatar_url": "https://avatars.githubusercontent.com/u/4950356?v=4"
       },
-      "domain": null,
-      "subfield": null,
-      "field": "Water Sciences",
+      "domain": "earth-sciences",
+      "subfield": "ocean-sciences",
+      "field": null,
       "review_stage": "none",
       "ball_in_court": "reviewer",
       "dri": {
@@ -3845,9 +3855,9 @@
         "login": "stared",
         "avatar_url": "https://avatars.githubusercontent.com/u/1001610?u=9a664b05a9e0ec94cef8223198d72055a38d9e23&v=4"
       },
-      "domain": null,
-      "subfield": null,
-      "field": "Data Science and Statistics",
+      "domain": "mathematical-sciences",
+      "subfield": "statistics",
+      "field": null,
       "review_stage": "none",
       "ball_in_court": "reviewer",
       "dri": {
@@ -4004,8 +4014,8 @@
         "login": "newtontech",
         "avatar_url": "https://avatars.githubusercontent.com/u/45420372?u=9ffc41d37894d92bf16f05c0cb5b2009b023d6a1&v=4"
       },
-      "domain": null,
-      "subfield": null,
+      "domain": "physical-sciences",
+      "subfield": "materials-science",
       "field": null,
       "review_stage": "none",
       "ball_in_court": null,
@@ -4054,8 +4064,8 @@
         "login": "newtontech",
         "avatar_url": "https://avatars.githubusercontent.com/u/45420372?u=9ffc41d37894d92bf16f05c0cb5b2009b023d6a1&v=4"
       },
-      "domain": null,
-      "subfield": null,
+      "domain": "physical-sciences",
+      "subfield": "materials-science",
       "field": null,
       "review_stage": "none",
       "ball_in_court": null,
@@ -4098,8 +4108,8 @@
         "login": "newtontech",
         "avatar_url": "https://avatars.githubusercontent.com/u/45420372?u=9ffc41d37894d92bf16f05c0cb5b2009b023d6a1&v=4"
       },
-      "domain": null,
-      "subfield": null,
+      "domain": "physical-sciences",
+      "subfield": "materials-science",
       "field": null,
       "review_stage": "none",
       "ball_in_court": null,
@@ -4142,8 +4152,8 @@
         "login": "newtontech",
         "avatar_url": "https://avatars.githubusercontent.com/u/45420372?u=9ffc41d37894d92bf16f05c0cb5b2009b023d6a1&v=4"
       },
-      "domain": null,
-      "subfield": null,
+      "domain": "physical-sciences",
+      "subfield": "materials-science",
       "field": null,
       "review_stage": "none",
       "ball_in_court": null,
@@ -4186,8 +4196,8 @@
         "login": "newtontech",
         "avatar_url": "https://avatars.githubusercontent.com/u/45420372?u=9ffc41d37894d92bf16f05c0cb5b2009b023d6a1&v=4"
       },
-      "domain": null,
-      "subfield": null,
+      "domain": "physical-sciences",
+      "subfield": "materials-science",
       "field": null,
       "review_stage": "none",
       "ball_in_court": null,
@@ -4230,8 +4240,8 @@
         "login": "newtontech",
         "avatar_url": "https://avatars.githubusercontent.com/u/45420372?u=9ffc41d37894d92bf16f05c0cb5b2009b023d6a1&v=4"
       },
-      "domain": null,
-      "subfield": null,
+      "domain": "physical-sciences",
+      "subfield": "materials-science",
       "field": null,
       "review_stage": "none",
       "ball_in_court": null,
@@ -4274,8 +4284,8 @@
         "login": "newtontech",
         "avatar_url": "https://avatars.githubusercontent.com/u/45420372?u=9ffc41d37894d92bf16f05c0cb5b2009b023d6a1&v=4"
       },
-      "domain": null,
-      "subfield": null,
+      "domain": "physical-sciences",
+      "subfield": "materials-science",
       "field": null,
       "review_stage": "none",
       "ball_in_court": null,
@@ -4318,8 +4328,8 @@
         "login": "newtontech",
         "avatar_url": "https://avatars.githubusercontent.com/u/45420372?u=9ffc41d37894d92bf16f05c0cb5b2009b023d6a1&v=4"
       },
-      "domain": null,
-      "subfield": null,
+      "domain": "physical-sciences",
+      "subfield": "materials-science",
       "field": null,
       "review_stage": "none",
       "ball_in_court": null,
@@ -4362,8 +4372,8 @@
         "login": "newtontech",
         "avatar_url": "https://avatars.githubusercontent.com/u/45420372?u=9ffc41d37894d92bf16f05c0cb5b2009b023d6a1&v=4"
       },
-      "domain": null,
-      "subfield": null,
+      "domain": "physical-sciences",
+      "subfield": "materials-science",
       "field": null,
       "review_stage": "none",
       "ball_in_court": null,
@@ -4770,7 +4780,7 @@
         "login": "StevenDillmann",
         "avatar_url": "https://avatars.githubusercontent.com/u/168044879?u=043018429f079135df493e2cdacc19c7a6bddbdf&v=4"
       },
-      "age_days": 78,
+      "age_days": 79,
       "updated_days": 18,
       "merged_days": null,
       "closed_days": null,
@@ -4820,8 +4830,8 @@
         "login": "AllenGrahamHart",
         "avatar_url": "https://avatars.githubusercontent.com/u/216503854?u=9e25e50782731d755d762fce91407f6173e9ef3c&v=4"
       },
-      "domain": null,
-      "subfield": null,
+      "domain": "physical-sciences",
+      "subfield": "chemistry",
       "field": null,
       "review_stage": "none",
       "ball_in_court": null,
@@ -5274,9 +5284,9 @@
         "login": "AllenGrahamHart",
         "avatar_url": "https://avatars.githubusercontent.com/u/216503854?u=9e25e50782731d755d762fce91407f6173e9ef3c&v=4"
       },
-      "domain": null,
-      "subfield": null,
-      "field": "Crystallography",
+      "domain": "physical-sciences",
+      "subfield": "materials-science",
+      "field": null,
       "review_stage": "none",
       "ball_in_court": null,
       "dri": null,
@@ -5359,9 +5369,9 @@
       "ball_in_court": null,
       "dri": null,
       "age_days": 71,
-      "updated_days": 56,
+      "updated_days": 57,
       "merged_days": null,
-      "closed_days": 56,
+      "closed_days": 57,
       "ci": "failure",
       "trials": null,
       "rubric": {
@@ -5540,9 +5550,9 @@
       "ball_in_court": null,
       "dri": null,
       "age_days": 97,
-      "updated_days": 62,
-      "merged_days": 62,
-      "closed_days": 62,
+      "updated_days": 63,
+      "merged_days": 63,
+      "closed_days": 63,
       "ci": "failure",
       "trials": {
         "passed": 0,
@@ -5806,7 +5816,7 @@
       },
       "domain": "physical-sciences",
       "subfield": "chemistry",
-      "field": "Chemistry",
+      "field": null,
       "review_stage": "2nd",
       "ball_in_court": null,
       "dri": null,
@@ -5876,9 +5886,9 @@
         "login": "AllenGrahamHart",
         "avatar_url": "https://avatars.githubusercontent.com/u/216503854?u=9e25e50782731d755d762fce91407f6173e9ef3c&v=4"
       },
-      "domain": null,
-      "subfield": null,
-      "field": "Crystallography",
+      "domain": "physical-sciences",
+      "subfield": "materials-science",
+      "field": null,
       "review_stage": "none",
       "ball_in_court": null,
       "dri": null,
@@ -5979,7 +5989,7 @@
       },
       "domain": "physical-sciences",
       "subfield": "chemistry",
-      "field": "Chemistry",
+      "field": null,
       "review_stage": "none",
       "ball_in_court": null,
       "dri": null,
@@ -6045,7 +6055,7 @@
       "review_stage": "none",
       "ball_in_court": null,
       "dri": null,
-      "age_days": 104,
+      "age_days": 105,
       "updated_days": 89,
       "merged_days": null,
       "closed_days": 89,
@@ -6096,7 +6106,7 @@
       },
       "domain": "physical-sciences",
       "subfield": "chemistry",
-      "field": "Chemistry",
+      "field": null,
       "review_stage": "none",
       "ball_in_court": null,
       "dri": null,
@@ -6156,8 +6166,8 @@
         "login": "AaronFeller",
         "avatar_url": "https://avatars.githubusercontent.com/u/14959142?u=18751b4035be98b2be37c821aeacd1e514601372&v=4"
       },
-      "domain": null,
-      "subfield": null,
+      "domain": "physical-sciences",
+      "subfield": "chemistry",
       "field": null,
       "review_stage": "none",
       "ball_in_court": null,
@@ -6270,8 +6280,8 @@
         "login": "caiqiuxia1",
         "avatar_url": "https://avatars.githubusercontent.com/u/65526557?v=4"
       },
-      "domain": null,
-      "subfield": null,
+      "domain": "physical-sciences",
+      "subfield": "materials-science",
       "field": null,
       "review_stage": "none",
       "ball_in_court": null,
@@ -6637,8 +6647,8 @@
         "login": "AllenGrahamHart",
         "avatar_url": "https://avatars.githubusercontent.com/u/216503854?u=9e25e50782731d755d762fce91407f6173e9ef3c&v=4"
       },
-      "domain": null,
-      "subfield": null,
+      "domain": "mathematical-sciences",
+      "subfield": "applied-mathematics",
       "field": null,
       "review_stage": "none",
       "ball_in_court": null,
@@ -6742,6 +6752,115 @@
     }
   ],
   "proposals": [
+    {
+      "number": 295,
+      "proposal_number": 164,
+      "title": "CLM5 Multi-Harvest Crop Phenology State",
+      "raw_title": "[Task Proposal #164] CLM5 Multi-Harvest Crop Phenology State",
+      "url": "https://github.com/harbor-framework/terminal-bench-science/discussions/295",
+      "body": "# [Task Proposal #164] CLM5 Multi-Harvest Crop Phenology State\n\n## Scientific Domain\nEarth Sciences > Environmental Sciences > terrestrial biogeochemistry / crop phenology\n\n## Scientific Problem\nCrop models can simulate multiple harvests in one year. Each harvest can have a different growing-degree-day threshold to maturity, but a scalar state variable can lose the association between each harvest date and its maturity threshold.\n\n\n## Workflow Details\nThe agent receives a reduced CLM5/CTSM crop phenology source subset, restart/history I/O stubs, and synthetic multi-harvest scenarios. It must produce a patch that stores GDD maturity per harvest slot, resets unused slots correctly each year, writes the diagnostic with the correct dimensions, and reads old restart files without breaking compatibility.\n\n\n## Dependencies & System Requirements\nCPU only. The test harness needs realistic restart/history I/O stubs. No GPU required.\n\n\n## Dataset\nSynthetic multi-harvest crop calendar scenarios with known GDD maturity thresholds. No real-world observational dataset required; the verifier uses generated data with known reference values.\n\n\n## Evaluation Strategy\nHidden tests simulate one-year and multi-year crop calendars. Checks include one-to-one pairing between harvest date and maturity GDD, sentinel values for unused slots, annual reset behavior, and compatibility with restart files missing the new dimension. The task is objectively and programmatically verifiable.\n\n\n## Complexity\nEstimated expert time: 4-6 hours for a CLM/CTSM or crop-modeling expert. The work crosses phenology logic, state allocation, diagnostic history output, and restart I/O. A correct solution must preserve time indexing and model restart behavior, not only add an array. Multi-harvest crop phenology is a real model-development issue in land biogeochemistry and agricultural impact modeling.\n\n\n## References & Resources\nNone provided\n\n## Additional Information\nNone provided\n\n## Author Information\nAuthor: Koutian Wu\nEmail: ktwu@utexas.edu\nRole: PhD Student in Geoscience\nProfile: https://ktwu01.github.io/\nGitHub: ktwu01\nDiscord: ktwu01\nHow did you hear about TB-Science: None provided\nRecommended Reviewers: None provided\n\n---\n*Submitted via Terminal-Bench Science Task Proposal Form*",
+      "comments_list": [
+        {
+          "url": "https://github.com/harbor-framework/terminal-bench-science/discussions/295#discussioncomment-17286922",
+          "created_at": "2026-06-13T05:41:41Z",
+          "author": {
+            "login": "github-actions",
+            "avatar_url": null
+          },
+          "body": "## \ud83d\udccb Task Proposal Rubric Review\n\n**cc**\n- **Author:** @ktwu01\n- **Secondary reviewers:** @AllenGrahamHart\n- **Final reviewers:** @StevenDillmann\n\n**Recommendation:** \ud83d\udfe1 **Uncertain**\n\n<details>\n<summary>Full Review</summary>\n\n## Scientific Domain\n**Domain:** Earth Sciences\n**Field:** Terrestrial Biogeochemistry / Land Surface Modeling\n**Subfield:** Crop Phenology Modeling (CLM5/CTSM)\n\n## Problem Statement\nThe task asks an agent to modify a reduced subset of CLM5/CTSM crop phenology source code to properly track growing-degree-day (GDD) maturity thresholds on a per-harvest-slot basis for crops that can be harvested multiple times per year. Currently, a scalar state variable loses the association between each harvest event and its corresponding maturity threshold. The agent must: (1) store GDD maturity per harvest slot, (2) reset unused slots correctly each year, (3) write diagnostics with correct dimensions, and (4) maintain backward compatibility with restart files that lack the new dimension. Verification is done via hidden tests that check one-to-one pairing between harvest dates and maturity GDD values, sentinel values for unused slots, annual reset behavior, and restart compatibility.\n\n## Verifiable\n**Positive aspects:**\n- The verification strategy is well-defined: hidden tests check specific, concrete properties (harvest-date/GDD pairing, sentinel values, annual resets, restart compatibility).\n- Synthetic data with known reference values eliminates ambiguity in what constitutes a correct answer.\n- Multiple test dimensions (one-year, multi-year, restart compatibility) provide robust coverage.\n- All checks are programmatically verifiable with no subjectivity.\n\n**Negative aspects:**\n- The specifics of the test harness and stubs matter enormously. If the I/O stubs are poorly designed, the verification could be fragile or allow trivially correct but scientifically meaningless solutions.\n- There could be edge cases in \"backward compatibility\" that are hard to specify precisely in tests.\n\n**Judgement:** Accept\n\n## Well-Specified\n**Positive aspects:**\n- The task clearly enumerates four concrete requirements: per-slot GDD storage, sentinel reset, diagnostic output dimensions, and restart backward compatibility.\n- The synthetic scenarios provide unambiguous ground truth.\n\n**Negative aspects:**\n- The proposal is somewhat vague about what the \"reduced CLM5/CTSM crop phenology source subset\" looks like. The complexity and difficulty depend heavily on how much code is provided and how the stubs are structured.\n- \"Restart files without breaking compatibility\" needs precise specification of what \"compatibility\" means \u2014 does the old file simply lack the field, and the code should fill defaults? What are the expected default values?\n- The description doesn't specify the exact data structure expected (e.g., array dimensions, naming conventions), though this could be clarified in the actual task implementation.\n- \"Correct dimensions\" for the diagnostic output needs to be precisely defined in the task.\n\n**Judgement:** Uncertain \u2014 the proposal is reasonable but the actual specification quality will depend heavily on implementation details not yet shown.\n\n## Solvable\n**Positive aspects:**\n- This is a well-understood type of software engineering task in land surface modeling. Experts regularly make similar modifications to CLM/CTSM.\n- The 4-6 hour estimate for an expert is reasonable and suggests the task is tractable.\n- No external data or special hardware is needed.\n- The solution approach is conceptually clear: add a dimensioned array, update phenology logic, modify I/O routines.\n\n**Negative aspects:**\n- The solvability depends on the quality and completeness of the provided code stubs. If the stubs are too stripped down, the agent may not have enough context to produce a correct solution. If too complete, the task may be trivial.\n- No reference solution is mentioned in the proposal, though one could presumably be produced.\n\n**Judgement:** Accept\n\n## Difficult\n**Positive aspects:**\n- The task requires understanding of multiple interconnected components: phenology state management, array dimensioning in Fortran (presumably), restart I/O conventions, and history/diagnostic output.\n- Backward restart compatibility is a subtle requirement that is easy to get wrong.\n- Multi-harvest phenology is not a standard textbook exercise; it requires domain knowledge of crop modeling conventions.\n- The cross-cutting nature (phenology logic + state allocation + I/O) makes this more than a simple coding task.\n\n**Negative aspects:**\n- For someone familiar with CLM/CTSM development patterns, this is a fairly routine model development task. It's the kind of thing a postdoc or research software engineer might do in a day or two.\n- The conceptual difficulty is moderate \u2014 once you understand the data structure change needed, the implementation is relatively mechanical across the four components.\n- Current frontier LLMs with good Fortran knowledge and some CLM familiarity might handle this, especially if the code stubs are well-structured and provide clear patterns to follow.\n- The difficulty might lean toward \"moderately hard\" rather than \"very hard\" \u2014 it's more about careful engineering than deep insight.\n\n**Judgement:** Uncertain \u2014 the difficulty is borderline. It's harder than a typical undergraduate project but may not reach the \"PhD-level\" threshold depending on implementation.\n\n## Scientifically Grounded & Interesting\n**Positive aspects:**\n- Multi-harvest crop phenology is a real, active area of development in land surface models. This is directly relevant to agricultural impact modeling and Earth system science.\n- CLM5/CTSM is one of the most widely used land surface models globally.\n- This type of model development work is exactly what research software engineers and model developers get paid to do.\n- The problem addresses a genuine limitation in how scalar state variables handle multi-harvest scenarios.\n\n**Negative aspects:**\n- The task is more of a software engineering/model development task than a scientific analysis task. While scientifically motivated, the actual work is code modification rather than scientific discovery.\n- The reduced/stub nature of the codebase makes it somewhat artificial compared to working with the actual CLM5 repository.\n\n**Judgement:** Accept\n\n## Outcome-Verified\n**Positive aspects:**\n- The task is graded on outcomes: does the modified code pass the hidden tests? The agent has freedom in how to implement the solution.\n- No specific process is mandated \u2014 the agent can choose its approach to array storage, sentinel values, etc., as long as the tests pass.\n\n**Negative aspects:**\n- If the tests are overly specific about implementation details (e.g., exact variable names, exact array shapes), this could become process-verified in disguise. But the proposal doesn't suggest this.\n- The requirement to produce a \"patch\" could be interpreted as process verification, but this is really just specifying the output format.\n\n**Judgement:** Accept\n\n## Final Analysis\nThis is a scientifically grounded task rooted in real land surface model development work. The verification strategy is concrete and programmatic, the task is clearly solvable, and it addresses a genuine issue in crop phenology modeling. The main concerns are:\n\n1. **Difficulty is borderline** \u2014 this is challenging software engineering but may not reach the highest difficulty bar. It depends heavily on how the stubs are designed and how much pattern-matching guidance they provide.\n2. **Specification completeness** \u2014 the proposal is reasonable at a high level but the actual quality will depend on implementation details (what the stubs look like, how precisely the expected outputs are defined).\n3. **The task leans more toward model software engineering than deep scientific computation**, though this is still within scope for TB-Science.\n\nOverall, this is a reasonable proposal that could work well if implemented carefully, with appropriately challenging stubs and well-designed hidden tests. The difficulty is the main uncertainty \u2014 it needs to be calibrated so that it's genuinely hard for an AI agent without being impossible.\n\n**Decision:** **Uncertain**\n\n</details>\n\n> \ud83e\udd16 This is an automated recommendation for a human maintainer \u2014 not a final decision. Based on [rubrics/task-proposal.md](https://github.com/harbor-framework/terminal-bench-science/blob/main/rubrics/task-proposal.md). Model: `claude-opus-4-6`"
+        },
+        {
+          "url": "https://github.com/harbor-framework/terminal-bench-science/discussions/295#discussioncomment-17286933",
+          "created_at": "2026-06-13T05:45:15Z",
+          "author": {
+            "login": "ktwu01",
+            "avatar_url": "https://avatars.githubusercontent.com/u/140198731?u=b1af7ee2eae6a10189ed41adc251f79482f395e6&v=4"
+          },
+          "body": "Thanks for the review. I agree that the task needs precise stubs and exact restart semantics to be well specified.\n\nClarifications I would use in the implementation:\n\n- The core state will be a per-patch, per-harvest array such as `gddmaturity_thisyr(p, 1:mxharvests)`, paired with the existing per-harvest date record. The task instruction will define the array dimension and the expected output field schema.\n- Unused harvest slots for the current year will use a dedicated missing value, e.g. `-1.0`, matching the per-year harvest-date convention. State initialization outside active crop logic can still use the model's existing missing-value convention if needed, but the verifier will document what it checks.\n- Backward compatibility will mean: old restart inputs that lack the new `mxharvests` field must not abort; the code should detect the missing field/dimension and initialize per-harvest GDD values to the documented missing value.\n- Hidden tests will cover multiple harvests with different GDD thresholds, annual reset behavior, unused slots, restart read/write with the new field, and old restart read without the new field.\n- The reduced code will include enough CLM/CTSM-style state allocation, phenology update, history output, and restart-I/O structure that the solution is not just adding an array in one function.\n\nOn difficulty: I agree this is more careful model software engineering than a deep numerical-method task. I would prioritize the MOM6 and Noah-MP proposals first, but I think this one can still be viable if reviewers want a crop-phenology/state-management task with realistic restart and diagnostic constraints.\n"
+        },
+        {
+          "url": "https://github.com/harbor-framework/terminal-bench-science/discussions/295#discussioncomment-17287757",
+          "created_at": "2026-06-13T08:10:01Z",
+          "author": {
+            "login": "AllenGrahamHart",
+            "avatar_url": "https://avatars.githubusercontent.com/u/216503854?u=9e25e50782731d755d762fce91407f6173e9ef3c&v=4"
+          },
+          "body": "/approve"
+        },
+        {
+          "url": "https://github.com/harbor-framework/terminal-bench-science/discussions/295#discussioncomment-17287759",
+          "created_at": "2026-06-13T08:10:10Z",
+          "author": {
+            "login": "github-actions",
+            "avatar_url": null
+          },
+          "body": "## \u2705 Proposal Approved\n\ncc @ktwu01 @AllenGrahamHart\n\nHi Koutian,\n\nGreat news \u2014 your TB-Science task proposal **\"CLM5 Multi-Harvest Crop Phenology State\"** has been approved by the maintainers! \ud83c\udf89\n\nYou're now invited to build and submit your task as a Pull Request. Here's how to get started:\n\n1. **Implement your task** \u2014 follow the [Contributing Guide](https://github.com/harbor-framework/terminal-bench-science/blob/main/CONTRIBUTING.md) and the [Harbor task format](https://harborframework.com/docs/task-format). You can also browse [`tasks/`](https://github.com/harbor-framework/terminal-bench-science/tree/main/tasks) for reference implementations.\n2. **Submit a PR** \u2014 make sure the automated checks pass as much as possible, then open a PR against `main` and reference this discussion.\n\n**Deadline:** Tasks must be submitted and merged by **August 17, 2026**. Most tasks need a few rounds of review \u2014 please start early.\n\nFor more on the project, see the [TB-Science announcement](https://www.tbench.ai/news/tb-science-announcement) on tbench.ai.\n\nQuestions? Drop by [`#tb-science` on Discord](https://discord.gg/ZvcWupVXjz) or reply in this thread.\n\nLooking forward to your PR,\nSteven"
+        }
+      ],
+      "author": {
+        "login": "ktwu01",
+        "avatar_url": "https://github.com/ktwu01.png?size=80"
+      },
+      "domain": "earth-sciences",
+      "subfield": "environmental-sciences",
+      "field": "Environmental Sciences",
+      "status": "approved",
+      "state": "closed",
+      "closed": true,
+      "llm_review": {
+        "recommendation": "uncertain",
+        "url": "https://github.com/harbor-framework/terminal-bench-science/discussions/295#discussioncomment-17286922"
+      },
+      "age_days": 4,
+      "updated_days": 0,
+      "has_pr": false,
+      "created_at": "2026-06-13T05:40:43Z",
+      "updated_at": "2026-06-17T05:49:44Z",
+      "closed_at": "2026-06-13T08:10:11Z",
+      "labels": [
+        "proposal-approved"
+      ]
+    },
+    {
+      "number": 291,
+      "proposal_number": 160,
+      "title": "Noah-MP Urban Canopy Initialization Fix",
+      "raw_title": "[Task Proposal #160] Noah-MP Urban Canopy Initialization Fix",
+      "url": "https://github.com/harbor-framework/terminal-bench-science/discussions/291",
+      "body": "# [Task Proposal #160] Noah-MP Urban Canopy Initialization Fix\n\n## Scientific Domain\nEarth Sciences > Atmospheric Sciences > land surface modeling / urban land-atmosphere coupling\n\n## Scientific Problem\nNoah-MP (a widely used land surface model) contains a physically inconsistent initialization when coupled to explicit urban canopy schemes such as BEP/BEM. In this configuration, the land model should treat urban grid points as rural/natural fractions internally while the external urban canopy model handles built-surface physics. A bug in this interface causes a grid cell to behave simultaneously as both urban and rural, leading to incorrect surface flux partitioning, erroneous carbon state initialization (LFMASSXY), and misinterpretation of land-use categories. This affects operational land-atmosphere coupled simulations used in weather forecasting, urban heat island studies, and regional climate modeling. The workflow reflects real production land model development in Noah-MP/WRF-HRLDAS.\n\n\n## Workflow Details\nThe agent receives a compact Noah-MP/HRLDAS source subset containing the relevant Fortran modules, a small synthetic driver script, and table values for urban and natural vegetation types. The agent must:\n1. Diagnose the inconsistent FlagUrban logic that conflates explicit-urban and bulk-urban modes.\n2. 2. Remap urban grid points to a natural vegetation type when an explicit urban canopy scheme is active.\n3. 3. Fix LFMASSXY (leaf carbon mass) initialization so it is computed from a valid vegetation specific leaf area (SLA) and LAI, yielding finite, physically plausible values.\n4. 4. Ensure companion edits are consistent across multiple Fortran modules.\n5. 5. Produce a source-code patch that compiles and passes scenario-based correctness tests.\n\n\n## Dependencies & System Requirements\nSoftware & Libraries:\n- GNU Fortran (gfortran >= 8) or Intel Fortran compiler\n- - Python 3.8+ with numpy and pytest (for the test harness driver)\n- - A reduced Noah-MP/HRLDAS Fortran source subset (provided with the task)\n- - netCDF4-Fortran (optional, only if I/O is included in the harness)\nHardware:\n- CPU only; no GPU required\n- - Minimal memory: ~512 MB RAM is sufficient\n- - Storage: < 100 MB for source files, binaries, and test data\n- - Estimated runtime: < 5 minutes for compilation and all test scenarios on a modern CPU\n\n\n## Dataset\nThe task uses synthetic data \u2014 no external download is required. The dataset consists of:\n- A small set of vegetation parameter table values (LAI, SLA, land-use category indices) for both urban and natural vegetation types, representative of MODIS/USGS land-use classifications used in Noah-MP.\n- - A synthetic driver that constructs minimal Noah-MP grid-cell state structures for three scenarios: (1) bulk-urban mode, (2) explicit-urban mode (BEP/BEM), and (3) non-urban rural.\n- All inputs are generated programmatically within the test harness (< 1 MB total). No proprietary or restricted data is needed.\n\n\n## Evaluation Strategy\nVerification is objective and fully programmatic via a hidden test suite that runs multiple urban-grid scenarios. Specific checks include:\n1. FlagUrban is TRUE only in bulk-urban mode (not in explicit-urban mode).\n2. 2. In explicit-urban mode, the vegetation type used for land-surface initialization corresponds to a natural/rural type (not the urban category).\n3. 3. LFMASSXY is finite (not NaN or Inf) and falls within a physically plausible range derived from LAI / SLA unit conversion.\n4. 4. Non-urban grid cells are unaffected by any of the changes (regression check).\n5. 5. The patched code compiles without errors or warnings under the reference Fortran compiler.\n6. All checks are binary pass/fail and can be run automatically with a Python test runner.\n\n\n## Complexity\nScientific & Conceptual Difficulty:\nThe fix requires understanding a coupled-model interface (Noah-MP + BEP/BEM), vegetation type remapping logic, LAI/SLA unit conversions, and the need for consistent companion edits across multiple Fortran modules. A generic coding agent can produce a patch that compiles but silently routes the grid cell through the wrong physics branch. Estimated expert time: 2-4 hours for a researcher familiar with Noah-MP or land model coupling.\n\nChallenge for AI Agents:\nThis task is hard for frontier AI agents because: (1) it requires reasoning about a coupled-model interface rather than isolated code logic; (2) the bug is silent \u2014 the model runs but produces physically wrong results; (3) the fix spans multiple modules and requires understanding Fortran-specific variable scoping; (4) LAI/SLA unit handling introduces a subtle numerical correctness requirement. This is not a toy problem: it represents a class of bug found in operational land-atmosphere modeling that affects urban surface fluxes and carbon state initialization.\n\n\n## References & Resources\n- Noah-MP (Niu et al. 2011, Yang et al. 2011): <https://doi.org/10.1029/2010JG001593>\n- - WRF/HRLDAS GitHub repository: <https://github.com/wrf-model/WRF>\n- - BEP urban canopy scheme (Martilli et al. 2002): <https://doi.org/10.1023/A:1016099921195>\n- - BEM building energy model (Salamanca et al. 2010): <https://doi.org/10.1007/s10546-009-9455-7>\n- - HRLDAS (Chen et al. 2007): https://doi.org/10.1175/JHM548.1\n\n\n## Additional Information\nMain risk / open question for reviewers: Is a source-code patch task against a reduced production-model subset a good fit for TB-Science, or should this be framed as a self-contained executable physics-kernel task? The patch approach preserves authenticity (real Fortran model code, real bug class), but a fully self-contained kernel might be easier to package and evaluate. Happy to discuss both framings.\n\n## Author Information\nAuthor: Koutian Wu\nEmail: ktwu@utexas.edu\nRole: PhD Student in Geoscience\nProfile: https://ktwu01.github.io/\nGitHub: ktwu01\nDiscord: ktwu01\nHow did you hear about TB-Science: None provided\nRecommended Reviewers: None provided\n\n---\n*Submitted via Terminal-Bench Science Task Proposal Form*",
+      "comments_list": [
+        {
+          "url": "https://github.com/harbor-framework/terminal-bench-science/discussions/291#discussioncomment-17286687",
+          "created_at": "2026-06-13T04:39:30Z",
+          "author": {
+            "login": "github-actions",
+            "avatar_url": null
+          },
+          "body": "## \ud83d\udccb Task Proposal Rubric Review\n\n**cc**\n- **Author:** @ktwu01\n- **Secondary reviewers:** @AllenGrahamHart\n- **Final reviewers:** @StevenDillmann\n\n**Recommendation:** \ud83d\udfe2 **Accept**\n\n<details>\n<summary>Full Review</summary>\n\n## Scientific Domain\n**Domain:** Earth Sciences\n**Field:** Land Surface Modeling\n**Subfield:** Urban land-atmosphere coupling (Noah-MP/WRF-HRLDAS)\n\n## Problem Statement\nThe agent must diagnose and fix a physically inconsistent initialization bug in Noah-MP's coupling to explicit urban canopy schemes (BEP/BEM). When an explicit urban model handles built-surface physics, Noah-MP should treat urban grid points as natural/rural internally, but a bug causes grid cells to be flagged as both urban and rural simultaneously. This leads to incorrect surface flux partitioning and erroneous carbon state (LFMASSXY) initialization. The agent must produce a source-code patch across multiple Fortran modules that correctly remaps urban grid points to natural vegetation types in explicit-urban mode, fixes LFMASSXY computation via proper LAI/SLA conversion, and passes scenario-based correctness tests.\n\n## Verifiable\n**Positive aspects:**\n- The evaluation strategy is clearly defined with binary pass/fail checks across multiple scenarios.\n- Checks are concrete: FlagUrban logic correctness, vegetation type remapping, LFMASSXY being finite and within physical bounds, regression on non-urban cells, and successful compilation.\n- All checks are programmatically verifiable with no subjective judgment needed.\n- The test harness uses synthetic data, eliminating non-determinism from external sources.\n\n**Negative aspects:**\n- There's a risk that multiple valid patches could exist that pass the described tests but differ in implementation details. However, since the tests are outcome-based (checking state values and flags), this is acceptable.\n- The compilation check is straightforward but the \"without warnings\" requirement could be finicky depending on compiler version/flags.\n\n**Judgement:** Strong Accept\n\n## Well-Specified\n**Positive aspects:**\n- The problem clearly describes what's wrong (FlagUrban logic conflating bulk-urban and explicit-urban modes), what needs to be fixed (remapping, LFMASSXY initialization), and what correct behavior looks like.\n- The five verification criteria are explicit and unambiguous.\n- The scenarios (bulk-urban, explicit-urban, non-urban) are well-defined.\n\n**Negative aspects:**\n- The task description doesn't fully specify what \"physically plausible range\" means for LFMASSXY \u2014 this needs to be precisely defined in the actual implementation (e.g., specific numerical bounds).\n- The description mentions \"companion edits across multiple Fortran modules\" but doesn't enumerate exactly which modules or what the companion edits are. This is fine for the task (the agent must discover this), but the verifier must be precise about what constitutes correctness.\n- The phrase \"corresponds to a natural/rural type\" needs precise specification \u2014 which specific vegetation category index?\n\n**Judgement:** Accept\n\n## Solvable\n**Positive aspects:**\n- The author clearly describes a known bug class in production code, implying a solution exists.\n- The fix is well-understood conceptually: remap urban to natural type when explicit urban scheme is active, fix LFMASSXY = LAI/SLA conversion.\n- Expert time estimated at 2-4 hours, which is reasonable.\n- Dependencies are standard and freely available.\n\n**Negative aspects:**\n- The task requires the agent to work with a \"reduced Noah-MP/HRLDAS Fortran source subset\" \u2014 the quality of this reduction matters. If the subset is too large or complex, solvability could be impacted for agents but not for experts.\n- No explicit solution is provided in the proposal, but the author clearly understands the fix, suggesting they can produce one.\n\n**Judgement:** Accept\n\n## Difficult\n**Positive aspects:**\n- The bug is silent (model runs but produces wrong results), requiring physical reasoning to diagnose.\n- The fix spans multiple Fortran modules with coupled-model interface logic.\n- Understanding the distinction between bulk-urban and explicit-urban modes requires domain knowledge of land-atmosphere coupling.\n- LAI/SLA unit conversion adds a subtle numerical correctness layer.\n- Fortran-specific variable scoping and module structure adds implementation complexity.\n- This is not a toy problem \u2014 it represents a real class of bugs in operational models.\n\n**Negative aspects:**\n- If the test harness is too prescriptive (e.g., essentially telling the agent exactly which lines to change), the difficulty drops significantly.\n- If the reduced source subset is very small (a few hundred lines), an agent might be able to brute-force the fix by understanding the test expectations.\n- The conceptual fix (remap urban to natural, fix LFMASSXY formula) is relatively straightforward once diagnosed \u2014 the difficulty is primarily in diagnosis and multi-module consistency.\n\n**Judgement:** Accept\n\n## Scientifically Grounded & Interesting\n**Positive aspects:**\n- This is drawn directly from a real production land surface model (Noah-MP/WRF-HRLDAS) used in weather forecasting and climate modeling.\n- The bug class (interface inconsistency in coupled models) is a genuine problem in operational code development.\n- Urban heat island studies and regional climate modeling are active research areas where this bug would matter.\n- The references are legitimate peer-reviewed publications.\n\n**Negative aspects:**\n- It's fundamentally a debugging task rather than a scientific computation task. However, debugging production scientific code is absolutely a real workflow that scientists do.\n\n**Judgement:** Strong Accept\n\n## Outcome-Verified\n**Positive aspects:**\n- The task asks for a source-code patch that passes tests \u2014 it doesn't prescribe how the agent arrives at the fix.\n- The agent is free to use any approach (reading code, reasoning about physics, trial and error) to produce the patch.\n- Verification is based on correctness of outputs (flag values, state variables, compilation), not process.\n\n**Negative aspects:**\n- The compilation check could be seen as slightly process-oriented (requiring specific compiler compatibility), but this is a standard software engineering constraint rather than a process restriction.\n\n**Judgement:** Strong Accept\n\n## Final Analysis\nThis is a well-conceived task that represents a genuine scientific computing workflow: diagnosing and fixing a subtle initialization bug in a production land surface model. The task is verifiable with concrete binary checks, scientifically grounded in real operational code, and difficult for AI agents due to the need for coupled-model interface understanding, multi-module Fortran editing, and physical reasoning about what constitutes correct behavior.\n\nThe main concerns are: (1) ensuring the \"reduced source subset\" is large/complex enough that the task remains genuinely difficult rather than trivially pattern-matchable, and (2) ensuring the verification criteria (especially \"physically plausible range\" for LFMASSXY) are precisely defined in the implementation. These are implementation-quality issues rather than fundamental problems with the task concept.\n\nThe task sits in a sweet spot: it's authentic (real bug class in real code), verifiable (objective pass/fail criteria), and difficult for good reasons (silent bugs, multi-module reasoning, domain knowledge of coupled-model interfaces). The estimated 2-4 hour expert solve time is appropriate.\n\n**Decision:** Accept\n\n</details>\n\n> \ud83e\udd16 This is an automated recommendation for a human maintainer \u2014 not a final decision. Based on [rubrics/task-proposal.md](https://github.com/harbor-framework/terminal-bench-science/blob/main/rubrics/task-proposal.md). Model: `claude-opus-4-6`"
+        }
+      ],
+      "author": {
+        "login": "ktwu01",
+        "avatar_url": "https://github.com/ktwu01.png?size=80"
+      },
+      "domain": "earth-sciences",
+      "subfield": "atmospheric-sciences",
+      "field": "Atmospheric Sciences",
+      "status": "pending",
+      "state": "open",
+      "closed": false,
+      "llm_review": {
+        "recommendation": "accept",
+        "url": "https://github.com/harbor-framework/terminal-bench-science/discussions/291#discussioncomment-17286687"
+      },
+      "age_days": 4,
+      "updated_days": 0,
+      "has_pr": false,
+      "created_at": "2026-06-13T04:38:38Z",
+      "updated_at": "2026-06-17T05:49:43Z",
+      "closed_at": null,
+      "labels": []
+    },
     {
       "number": 303,
       "proposal_number": 169,
@@ -6861,7 +6980,7 @@
         "recommendation": "uncertain",
         "url": "https://github.com/harbor-framework/terminal-bench-science/discussions/294#discussioncomment-17286859"
       },
-      "age_days": 3,
+      "age_days": 4,
       "updated_days": 0,
       "has_pr": false,
       "created_at": "2026-06-13T05:27:40Z",
@@ -6930,7 +7049,7 @@
         "recommendation": "uncertain",
         "url": "https://github.com/harbor-framework/terminal-bench-science/discussions/293#discussioncomment-17286811"
       },
-      "age_days": 3,
+      "age_days": 4,
       "updated_days": 0,
       "has_pr": false,
       "created_at": "2026-06-13T05:14:15Z",
@@ -7982,7 +8101,7 @@
         "recommendation": "reject",
         "url": "https://github.com/harbor-framework/terminal-bench-science/discussions/39#discussioncomment-16151863"
       },
-      "age_days": 92,
+      "age_days": 93,
       "updated_days": 0,
       "has_pr": false,
       "created_at": "2026-03-16T04:50:26Z",
@@ -8418,7 +8537,7 @@
         "recommendation": "uncertain",
         "url": "https://github.com/harbor-framework/terminal-bench-science/discussions/112#discussioncomment-16631567"
       },
-      "age_days": 57,
+      "age_days": 58,
       "updated_days": 0,
       "has_pr": false,
       "created_at": "2026-04-20T05:41:01Z",
@@ -8467,7 +8586,7 @@
         "recommendation": "uncertain",
         "url": "https://github.com/harbor-framework/terminal-bench-science/discussions/113#discussioncomment-16631596"
       },
-      "age_days": 57,
+      "age_days": 58,
       "updated_days": 0,
       "has_pr": false,
       "created_at": "2026-04-20T05:43:55Z",
@@ -9064,7 +9183,7 @@
         "recommendation": "accept",
         "url": "https://github.com/harbor-framework/terminal-bench-science/discussions/115#discussioncomment-16631652"
       },
-      "age_days": 57,
+      "age_days": 58,
       "updated_days": 0,
       "has_pr": false,
       "created_at": "2026-04-20T05:49:59Z",
@@ -9122,7 +9241,7 @@
         "recommendation": "accept",
         "url": "https://github.com/harbor-framework/terminal-bench-science/discussions/114#discussioncomment-16631620"
       },
-      "age_days": 57,
+      "age_days": 58,
       "updated_days": 0,
       "has_pr": false,
       "created_at": "2026-04-20T05:46:35Z",
@@ -9171,7 +9290,7 @@
         "recommendation": "uncertain",
         "url": "https://github.com/harbor-framework/terminal-bench-science/discussions/116#discussioncomment-16631665"
       },
-      "age_days": 57,
+      "age_days": 58,
       "updated_days": 0,
       "has_pr": false,
       "created_at": "2026-04-20T05:52:13Z",
@@ -9220,7 +9339,7 @@
         "recommendation": "reject",
         "url": "https://github.com/harbor-framework/terminal-bench-science/discussions/117#discussioncomment-16631692"
       },
-      "age_days": 57,
+      "age_days": 58,
       "updated_days": 0,
       "has_pr": false,
       "created_at": "2026-04-20T05:55:16Z",
@@ -11147,7 +11266,7 @@
         "recommendation": "accept",
         "url": "https://github.com/harbor-framework/terminal-bench-science/discussions/265#discussioncomment-17175830"
       },
-      "age_days": 12,
+      "age_days": 13,
       "updated_days": 0,
       "has_pr": false,
       "created_at": "2026-06-04T05:49:41Z",
@@ -12642,7 +12761,7 @@
         "recommendation": "accept",
         "url": "https://github.com/harbor-framework/terminal-bench-science/discussions/179#discussioncomment-16956048"
       },
-      "age_days": 29,
+      "age_days": 30,
       "updated_days": 0,
       "has_pr": false,
       "created_at": "2026-05-18T04:40:13Z",
@@ -12691,7 +12810,7 @@
         "recommendation": "accept",
         "url": "https://github.com/harbor-framework/terminal-bench-science/discussions/178#discussioncomment-16956003"
       },
-      "age_days": 29,
+      "age_days": 30,
       "updated_days": 0,
       "has_pr": false,
       "created_at": "2026-05-18T04:33:56Z",
@@ -13339,7 +13458,7 @@
         "recommendation": "accept",
         "url": "https://github.com/harbor-framework/terminal-bench-science/discussions/143#discussioncomment-16664934"
       },
-      "age_days": 55,
+      "age_days": 56,
       "updated_days": 0,
       "has_pr": false,
       "created_at": "2026-04-22T04:57:43Z",
@@ -14325,46 +14444,6 @@
       "labels": []
     },
     {
-      "number": 291,
-      "proposal_number": 160,
-      "title": "Noah-MP Urban Canopy Initialization Fix",
-      "raw_title": "[Task Proposal #160] Noah-MP Urban Canopy Initialization Fix",
-      "url": "https://github.com/harbor-framework/terminal-bench-science/discussions/291",
-      "body": "# [Task Proposal #160] Noah-MP Urban Canopy Initialization Fix\n\n## Scientific Domain\nEarth Sciences > Other > Land surface modeling / urban land-atmosphere coupling\n\n## Scientific Problem\nNoah-MP (a widely used land surface model) contains a physically inconsistent initialization when coupled to explicit urban canopy schemes such as BEP/BEM. In this configuration, the land model should treat urban grid points as rural/natural fractions internally while the external urban canopy model handles built-surface physics. A bug in this interface causes a grid cell to behave simultaneously as both urban and rural, leading to incorrect surface flux partitioning, erroneous carbon state initialization (LFMASSXY), and misinterpretation of land-use categories. This affects operational land-atmosphere coupled simulations used in weather forecasting, urban heat island studies, and regional climate modeling. The workflow reflects real production land model development in Noah-MP/WRF-HRLDAS.\n\n\n## Workflow Details\nThe agent receives a compact Noah-MP/HRLDAS source subset containing the relevant Fortran modules, a small synthetic driver script, and table values for urban and natural vegetation types. The agent must:\n1. Diagnose the inconsistent FlagUrban logic that conflates explicit-urban and bulk-urban modes.\n2. 2. Remap urban grid points to a natural vegetation type when an explicit urban canopy scheme is active.\n3. 3. Fix LFMASSXY (leaf carbon mass) initialization so it is computed from a valid vegetation specific leaf area (SLA) and LAI, yielding finite, physically plausible values.\n4. 4. Ensure companion edits are consistent across multiple Fortran modules.\n5. 5. Produce a source-code patch that compiles and passes scenario-based correctness tests.\n\n\n## Dependencies & System Requirements\nSoftware & Libraries:\n- GNU Fortran (gfortran >= 8) or Intel Fortran compiler\n- - Python 3.8+ with numpy and pytest (for the test harness driver)\n- - A reduced Noah-MP/HRLDAS Fortran source subset (provided with the task)\n- - netCDF4-Fortran (optional, only if I/O is included in the harness)\nHardware:\n- CPU only; no GPU required\n- - Minimal memory: ~512 MB RAM is sufficient\n- - Storage: < 100 MB for source files, binaries, and test data\n- - Estimated runtime: < 5 minutes for compilation and all test scenarios on a modern CPU\n\n\n## Dataset\nThe task uses synthetic data \u2014 no external download is required. The dataset consists of:\n- A small set of vegetation parameter table values (LAI, SLA, land-use category indices) for both urban and natural vegetation types, representative of MODIS/USGS land-use classifications used in Noah-MP.\n- - A synthetic driver that constructs minimal Noah-MP grid-cell state structures for three scenarios: (1) bulk-urban mode, (2) explicit-urban mode (BEP/BEM), and (3) non-urban rural.\n- All inputs are generated programmatically within the test harness (< 1 MB total). No proprietary or restricted data is needed.\n\n\n## Evaluation Strategy\nVerification is objective and fully programmatic via a hidden test suite that runs multiple urban-grid scenarios. Specific checks include:\n1. FlagUrban is TRUE only in bulk-urban mode (not in explicit-urban mode).\n2. 2. In explicit-urban mode, the vegetation type used for land-surface initialization corresponds to a natural/rural type (not the urban category).\n3. 3. LFMASSXY is finite (not NaN or Inf) and falls within a physically plausible range derived from LAI / SLA unit conversion.\n4. 4. Non-urban grid cells are unaffected by any of the changes (regression check).\n5. 5. The patched code compiles without errors or warnings under the reference Fortran compiler.\n6. All checks are binary pass/fail and can be run automatically with a Python test runner.\n\n\n## Complexity\nScientific & Conceptual Difficulty:\nThe fix requires understanding a coupled-model interface (Noah-MP + BEP/BEM), vegetation type remapping logic, LAI/SLA unit conversions, and the need for consistent companion edits across multiple Fortran modules. A generic coding agent can produce a patch that compiles but silently routes the grid cell through the wrong physics branch. Estimated expert time: 2-4 hours for a researcher familiar with Noah-MP or land model coupling.\n\nChallenge for AI Agents:\nThis task is hard for frontier AI agents because: (1) it requires reasoning about a coupled-model interface rather than isolated code logic; (2) the bug is silent \u2014 the model runs but produces physically wrong results; (3) the fix spans multiple modules and requires understanding Fortran-specific variable scoping; (4) LAI/SLA unit handling introduces a subtle numerical correctness requirement. This is not a toy problem: it represents a class of bug found in operational land-atmosphere modeling that affects urban surface fluxes and carbon state initialization.\n\n\n## References & Resources\n- Noah-MP (Niu et al. 2011, Yang et al. 2011): <https://doi.org/10.1029/2010JG001593>\n- - WRF/HRLDAS GitHub repository: <https://github.com/wrf-model/WRF>\n- - BEP urban canopy scheme (Martilli et al. 2002): <https://doi.org/10.1023/A:1016099921195>\n- - BEM building energy model (Salamanca et al. 2010): <https://doi.org/10.1007/s10546-009-9455-7>\n- - HRLDAS (Chen et al. 2007): https://doi.org/10.1175/JHM548.1\n\n\n## Additional Information\nMain risk / open question for reviewers: Is a source-code patch task against a reduced production-model subset a good fit for TB-Science, or should this be framed as a self-contained executable physics-kernel task? The patch approach preserves authenticity (real Fortran model code, real bug class), but a fully self-contained kernel might be easier to package and evaluate. Happy to discuss both framings.\n\n## Author Information\nAuthor: Koutian Wu\nEmail: ktwu@utexas.edu\nRole: PhD Student in Geoscience\nProfile: https://ktwu01.github.io/\nGitHub: ktwu01\nDiscord: ktwu01\nHow did you hear about TB-Science: None provided\nRecommended Reviewers: None provided\n\n---\n*Submitted via Terminal-Bench Science Task Proposal Form*",
-      "comments_list": [
-        {
-          "url": "https://github.com/harbor-framework/terminal-bench-science/discussions/291#discussioncomment-17286687",
-          "created_at": "2026-06-13T04:39:30Z",
-          "author": {
-            "login": "github-actions",
-            "avatar_url": null
-          },
-          "body": "## \ud83d\udccb Task Proposal Rubric Review\n\n**cc**\n- **Author:** @ktwu01\n- **Secondary reviewers:** @AllenGrahamHart\n- **Final reviewers:** @StevenDillmann\n\n**Recommendation:** \ud83d\udfe2 **Accept**\n\n<details>\n<summary>Full Review</summary>\n\n## Scientific Domain\n**Domain:** Earth Sciences\n**Field:** Land Surface Modeling\n**Subfield:** Urban land-atmosphere coupling (Noah-MP/WRF-HRLDAS)\n\n## Problem Statement\nThe agent must diagnose and fix a physically inconsistent initialization bug in Noah-MP's coupling to explicit urban canopy schemes (BEP/BEM). When an explicit urban model handles built-surface physics, Noah-MP should treat urban grid points as natural/rural internally, but a bug causes grid cells to be flagged as both urban and rural simultaneously. This leads to incorrect surface flux partitioning and erroneous carbon state (LFMASSXY) initialization. The agent must produce a source-code patch across multiple Fortran modules that correctly remaps urban grid points to natural vegetation types in explicit-urban mode, fixes LFMASSXY computation via proper LAI/SLA conversion, and passes scenario-based correctness tests.\n\n## Verifiable\n**Positive aspects:**\n- The evaluation strategy is clearly defined with binary pass/fail checks across multiple scenarios.\n- Checks are concrete: FlagUrban logic correctness, vegetation type remapping, LFMASSXY being finite and within physical bounds, regression on non-urban cells, and successful compilation.\n- All checks are programmatically verifiable with no subjective judgment needed.\n- The test harness uses synthetic data, eliminating non-determinism from external sources.\n\n**Negative aspects:**\n- There's a risk that multiple valid patches could exist that pass the described tests but differ in implementation details. However, since the tests are outcome-based (checking state values and flags), this is acceptable.\n- The compilation check is straightforward but the \"without warnings\" requirement could be finicky depending on compiler version/flags.\n\n**Judgement:** Strong Accept\n\n## Well-Specified\n**Positive aspects:**\n- The problem clearly describes what's wrong (FlagUrban logic conflating bulk-urban and explicit-urban modes), what needs to be fixed (remapping, LFMASSXY initialization), and what correct behavior looks like.\n- The five verification criteria are explicit and unambiguous.\n- The scenarios (bulk-urban, explicit-urban, non-urban) are well-defined.\n\n**Negative aspects:**\n- The task description doesn't fully specify what \"physically plausible range\" means for LFMASSXY \u2014 this needs to be precisely defined in the actual implementation (e.g., specific numerical bounds).\n- The description mentions \"companion edits across multiple Fortran modules\" but doesn't enumerate exactly which modules or what the companion edits are. This is fine for the task (the agent must discover this), but the verifier must be precise about what constitutes correctness.\n- The phrase \"corresponds to a natural/rural type\" needs precise specification \u2014 which specific vegetation category index?\n\n**Judgement:** Accept\n\n## Solvable\n**Positive aspects:**\n- The author clearly describes a known bug class in production code, implying a solution exists.\n- The fix is well-understood conceptually: remap urban to natural type when explicit urban scheme is active, fix LFMASSXY = LAI/SLA conversion.\n- Expert time estimated at 2-4 hours, which is reasonable.\n- Dependencies are standard and freely available.\n\n**Negative aspects:**\n- The task requires the agent to work with a \"reduced Noah-MP/HRLDAS Fortran source subset\" \u2014 the quality of this reduction matters. If the subset is too large or complex, solvability could be impacted for agents but not for experts.\n- No explicit solution is provided in the proposal, but the author clearly understands the fix, suggesting they can produce one.\n\n**Judgement:** Accept\n\n## Difficult\n**Positive aspects:**\n- The bug is silent (model runs but produces wrong results), requiring physical reasoning to diagnose.\n- The fix spans multiple Fortran modules with coupled-model interface logic.\n- Understanding the distinction between bulk-urban and explicit-urban modes requires domain knowledge of land-atmosphere coupling.\n- LAI/SLA unit conversion adds a subtle numerical correctness layer.\n- Fortran-specific variable scoping and module structure adds implementation complexity.\n- This is not a toy problem \u2014 it represents a real class of bugs in operational models.\n\n**Negative aspects:**\n- If the test harness is too prescriptive (e.g., essentially telling the agent exactly which lines to change), the difficulty drops significantly.\n- If the reduced source subset is very small (a few hundred lines), an agent might be able to brute-force the fix by understanding the test expectations.\n- The conceptual fix (remap urban to natural, fix LFMASSXY formula) is relatively straightforward once diagnosed \u2014 the difficulty is primarily in diagnosis and multi-module consistency.\n\n**Judgement:** Accept\n\n## Scientifically Grounded & Interesting\n**Positive aspects:**\n- This is drawn directly from a real production land surface model (Noah-MP/WRF-HRLDAS) used in weather forecasting and climate modeling.\n- The bug class (interface inconsistency in coupled models) is a genuine problem in operational code development.\n- Urban heat island studies and regional climate modeling are active research areas where this bug would matter.\n- The references are legitimate peer-reviewed publications.\n\n**Negative aspects:**\n- It's fundamentally a debugging task rather than a scientific computation task. However, debugging production scientific code is absolutely a real workflow that scientists do.\n\n**Judgement:** Strong Accept\n\n## Outcome-Verified\n**Positive aspects:**\n- The task asks for a source-code patch that passes tests \u2014 it doesn't prescribe how the agent arrives at the fix.\n- The agent is free to use any approach (reading code, reasoning about physics, trial and error) to produce the patch.\n- Verification is based on correctness of outputs (flag values, state variables, compilation), not process.\n\n**Negative aspects:**\n- The compilation check could be seen as slightly process-oriented (requiring specific compiler compatibility), but this is a standard software engineering constraint rather than a process restriction.\n\n**Judgement:** Strong Accept\n\n## Final Analysis\nThis is a well-conceived task that represents a genuine scientific computing workflow: diagnosing and fixing a subtle initialization bug in a production land surface model. The task is verifiable with concrete binary checks, scientifically grounded in real operational code, and difficult for AI agents due to the need for coupled-model interface understanding, multi-module Fortran editing, and physical reasoning about what constitutes correct behavior.\n\nThe main concerns are: (1) ensuring the \"reduced source subset\" is large/complex enough that the task remains genuinely difficult rather than trivially pattern-matchable, and (2) ensuring the verification criteria (especially \"physically plausible range\" for LFMASSXY) are precisely defined in the implementation. These are implementation-quality issues rather than fundamental problems with the task concept.\n\nThe task sits in a sweet spot: it's authentic (real bug class in real code), verifiable (objective pass/fail criteria), and difficult for good reasons (silent bugs, multi-module reasoning, domain knowledge of coupled-model interfaces). The estimated 2-4 hour expert solve time is appropriate.\n\n**Decision:** Accept\n\n</details>\n\n> \ud83e\udd16 This is an automated recommendation for a human maintainer \u2014 not a final decision. Based on [rubrics/task-proposal.md](https://github.com/harbor-framework/terminal-bench-science/blob/main/rubrics/task-proposal.md). Model: `claude-opus-4-6`"
-        }
-      ],
-      "author": {
-        "login": "ktwu01",
-        "avatar_url": "https://github.com/ktwu01.png?size=80"
-      },
-      "domain": "earth-sciences",
-      "subfield": null,
-      "field": "Other",
-      "status": "pending",
-      "state": "open",
-      "closed": false,
-      "llm_review": {
-        "recommendation": "accept",
-        "url": "https://github.com/harbor-framework/terminal-bench-science/discussions/291#discussioncomment-17286687"
-      },
-      "age_days": 3,
-      "updated_days": 0,
-      "has_pr": false,
-      "created_at": "2026-06-13T04:38:38Z",
-      "updated_at": "2026-06-16T21:28:13Z",
-      "closed_at": null,
-      "labels": []
-    },
-    {
       "number": 292,
       "proposal_number": 161,
       "title": "MOM6 Offline Tracer Diffusivity Units",
@@ -14396,82 +14475,13 @@
         "recommendation": "accept",
         "url": "https://github.com/harbor-framework/terminal-bench-science/discussions/292#discussioncomment-17286718"
       },
-      "age_days": 3,
+      "age_days": 4,
       "updated_days": 0,
       "has_pr": false,
       "created_at": "2026-06-13T04:48:48Z",
       "updated_at": "2026-06-16T21:28:12Z",
       "closed_at": null,
       "labels": []
-    },
-    {
-      "number": 295,
-      "proposal_number": 164,
-      "title": "CLM5 Multi-Harvest Crop Phenology State",
-      "raw_title": "[Task Proposal #164] CLM5 Multi-Harvest Crop Phenology State",
-      "url": "https://github.com/harbor-framework/terminal-bench-science/discussions/295",
-      "body": "# [Task Proposal #164] CLM5 Multi-Harvest Crop Phenology State\n\n## Scientific Domain\nEarth Sciences > Other > terrestrial biogeochemistry / crop phenology\n\n## Scientific Problem\nCrop models can simulate multiple harvests in one year. Each harvest can have a different growing-degree-day threshold to maturity, but a scalar state variable can lose the association between each harvest date and its maturity threshold.\n\n\n## Workflow Details\nThe agent receives a reduced CLM5/CTSM crop phenology source subset, restart/history I/O stubs, and synthetic multi-harvest scenarios. It must produce a patch that stores GDD maturity per harvest slot, resets unused slots correctly each year, writes the diagnostic with the correct dimensions, and reads old restart files without breaking compatibility.\n\n\n## Dependencies & System Requirements\nCPU only. The test harness needs realistic restart/history I/O stubs. No GPU required.\n\n\n## Dataset\nSynthetic multi-harvest crop calendar scenarios with known GDD maturity thresholds. No real-world observational dataset required; the verifier uses generated data with known reference values.\n\n\n## Evaluation Strategy\nHidden tests simulate one-year and multi-year crop calendars. Checks include one-to-one pairing between harvest date and maturity GDD, sentinel values for unused slots, annual reset behavior, and compatibility with restart files missing the new dimension. The task is objectively and programmatically verifiable.\n\n\n## Complexity\nEstimated expert time: 4-6 hours for a CLM/CTSM or crop-modeling expert. The work crosses phenology logic, state allocation, diagnostic history output, and restart I/O. A correct solution must preserve time indexing and model restart behavior, not only add an array. Multi-harvest crop phenology is a real model-development issue in land biogeochemistry and agricultural impact modeling.\n\n\n## References & Resources\nNone provided\n\n## Additional Information\nNone provided\n\n## Author Information\nAuthor: Koutian Wu\nEmail: ktwu@utexas.edu\nRole: PhD Student in Geoscience\nProfile: https://ktwu01.github.io/\nGitHub: ktwu01\nDiscord: ktwu01\nHow did you hear about TB-Science: None provided\nRecommended Reviewers: None provided\n\n---\n*Submitted via Terminal-Bench Science Task Proposal Form*",
-      "comments_list": [
-        {
-          "url": "https://github.com/harbor-framework/terminal-bench-science/discussions/295#discussioncomment-17286922",
-          "created_at": "2026-06-13T05:41:41Z",
-          "author": {
-            "login": "github-actions",
-            "avatar_url": null
-          },
-          "body": "## \ud83d\udccb Task Proposal Rubric Review\n\n**cc**\n- **Author:** @ktwu01\n- **Secondary reviewers:** @AllenGrahamHart\n- **Final reviewers:** @StevenDillmann\n\n**Recommendation:** \ud83d\udfe1 **Uncertain**\n\n<details>\n<summary>Full Review</summary>\n\n## Scientific Domain\n**Domain:** Earth Sciences\n**Field:** Terrestrial Biogeochemistry / Land Surface Modeling\n**Subfield:** Crop Phenology Modeling (CLM5/CTSM)\n\n## Problem Statement\nThe task asks an agent to modify a reduced subset of CLM5/CTSM crop phenology source code to properly track growing-degree-day (GDD) maturity thresholds on a per-harvest-slot basis for crops that can be harvested multiple times per year. Currently, a scalar state variable loses the association between each harvest event and its corresponding maturity threshold. The agent must: (1) store GDD maturity per harvest slot, (2) reset unused slots correctly each year, (3) write diagnostics with correct dimensions, and (4) maintain backward compatibility with restart files that lack the new dimension. Verification is done via hidden tests that check one-to-one pairing between harvest dates and maturity GDD values, sentinel values for unused slots, annual reset behavior, and restart compatibility.\n\n## Verifiable\n**Positive aspects:**\n- The verification strategy is well-defined: hidden tests check specific, concrete properties (harvest-date/GDD pairing, sentinel values, annual resets, restart compatibility).\n- Synthetic data with known reference values eliminates ambiguity in what constitutes a correct answer.\n- Multiple test dimensions (one-year, multi-year, restart compatibility) provide robust coverage.\n- All checks are programmatically verifiable with no subjectivity.\n\n**Negative aspects:**\n- The specifics of the test harness and stubs matter enormously. If the I/O stubs are poorly designed, the verification could be fragile or allow trivially correct but scientifically meaningless solutions.\n- There could be edge cases in \"backward compatibility\" that are hard to specify precisely in tests.\n\n**Judgement:** Accept\n\n## Well-Specified\n**Positive aspects:**\n- The task clearly enumerates four concrete requirements: per-slot GDD storage, sentinel reset, diagnostic output dimensions, and restart backward compatibility.\n- The synthetic scenarios provide unambiguous ground truth.\n\n**Negative aspects:**\n- The proposal is somewhat vague about what the \"reduced CLM5/CTSM crop phenology source subset\" looks like. The complexity and difficulty depend heavily on how much code is provided and how the stubs are structured.\n- \"Restart files without breaking compatibility\" needs precise specification of what \"compatibility\" means \u2014 does the old file simply lack the field, and the code should fill defaults? What are the expected default values?\n- The description doesn't specify the exact data structure expected (e.g., array dimensions, naming conventions), though this could be clarified in the actual task implementation.\n- \"Correct dimensions\" for the diagnostic output needs to be precisely defined in the task.\n\n**Judgement:** Uncertain \u2014 the proposal is reasonable but the actual specification quality will depend heavily on implementation details not yet shown.\n\n## Solvable\n**Positive aspects:**\n- This is a well-understood type of software engineering task in land surface modeling. Experts regularly make similar modifications to CLM/CTSM.\n- The 4-6 hour estimate for an expert is reasonable and suggests the task is tractable.\n- No external data or special hardware is needed.\n- The solution approach is conceptually clear: add a dimensioned array, update phenology logic, modify I/O routines.\n\n**Negative aspects:**\n- The solvability depends on the quality and completeness of the provided code stubs. If the stubs are too stripped down, the agent may not have enough context to produce a correct solution. If too complete, the task may be trivial.\n- No reference solution is mentioned in the proposal, though one could presumably be produced.\n\n**Judgement:** Accept\n\n## Difficult\n**Positive aspects:**\n- The task requires understanding of multiple interconnected components: phenology state management, array dimensioning in Fortran (presumably), restart I/O conventions, and history/diagnostic output.\n- Backward restart compatibility is a subtle requirement that is easy to get wrong.\n- Multi-harvest phenology is not a standard textbook exercise; it requires domain knowledge of crop modeling conventions.\n- The cross-cutting nature (phenology logic + state allocation + I/O) makes this more than a simple coding task.\n\n**Negative aspects:**\n- For someone familiar with CLM/CTSM development patterns, this is a fairly routine model development task. It's the kind of thing a postdoc or research software engineer might do in a day or two.\n- The conceptual difficulty is moderate \u2014 once you understand the data structure change needed, the implementation is relatively mechanical across the four components.\n- Current frontier LLMs with good Fortran knowledge and some CLM familiarity might handle this, especially if the code stubs are well-structured and provide clear patterns to follow.\n- The difficulty might lean toward \"moderately hard\" rather than \"very hard\" \u2014 it's more about careful engineering than deep insight.\n\n**Judgement:** Uncertain \u2014 the difficulty is borderline. It's harder than a typical undergraduate project but may not reach the \"PhD-level\" threshold depending on implementation.\n\n## Scientifically Grounded & Interesting\n**Positive aspects:**\n- Multi-harvest crop phenology is a real, active area of development in land surface models. This is directly relevant to agricultural impact modeling and Earth system science.\n- CLM5/CTSM is one of the most widely used land surface models globally.\n- This type of model development work is exactly what research software engineers and model developers get paid to do.\n- The problem addresses a genuine limitation in how scalar state variables handle multi-harvest scenarios.\n\n**Negative aspects:**\n- The task is more of a software engineering/model development task than a scientific analysis task. While scientifically motivated, the actual work is code modification rather than scientific discovery.\n- The reduced/stub nature of the codebase makes it somewhat artificial compared to working with the actual CLM5 repository.\n\n**Judgement:** Accept\n\n## Outcome-Verified\n**Positive aspects:**\n- The task is graded on outcomes: does the modified code pass the hidden tests? The agent has freedom in how to implement the solution.\n- No specific process is mandated \u2014 the agent can choose its approach to array storage, sentinel values, etc., as long as the tests pass.\n\n**Negative aspects:**\n- If the tests are overly specific about implementation details (e.g., exact variable names, exact array shapes), this could become process-verified in disguise. But the proposal doesn't suggest this.\n- The requirement to produce a \"patch\" could be interpreted as process verification, but this is really just specifying the output format.\n\n**Judgement:** Accept\n\n## Final Analysis\nThis is a scientifically grounded task rooted in real land surface model development work. The verification strategy is concrete and programmatic, the task is clearly solvable, and it addresses a genuine issue in crop phenology modeling. The main concerns are:\n\n1. **Difficulty is borderline** \u2014 this is challenging software engineering but may not reach the highest difficulty bar. It depends heavily on how the stubs are designed and how much pattern-matching guidance they provide.\n2. **Specification completeness** \u2014 the proposal is reasonable at a high level but the actual quality will depend on implementation details (what the stubs look like, how precisely the expected outputs are defined).\n3. **The task leans more toward model software engineering than deep scientific computation**, though this is still within scope for TB-Science.\n\nOverall, this is a reasonable proposal that could work well if implemented carefully, with appropriately challenging stubs and well-designed hidden tests. The difficulty is the main uncertainty \u2014 it needs to be calibrated so that it's genuinely hard for an AI agent without being impossible.\n\n**Decision:** **Uncertain**\n\n</details>\n\n> \ud83e\udd16 This is an automated recommendation for a human maintainer \u2014 not a final decision. Based on [rubrics/task-proposal.md](https://github.com/harbor-framework/terminal-bench-science/blob/main/rubrics/task-proposal.md). Model: `claude-opus-4-6`"
-        },
-        {
-          "url": "https://github.com/harbor-framework/terminal-bench-science/discussions/295#discussioncomment-17286933",
-          "created_at": "2026-06-13T05:45:15Z",
-          "author": {
-            "login": "ktwu01",
-            "avatar_url": "https://avatars.githubusercontent.com/u/140198731?u=b1af7ee2eae6a10189ed41adc251f79482f395e6&v=4"
-          },
-          "body": "Thanks for the review. I agree that the task needs precise stubs and exact restart semantics to be well specified.\n\nClarifications I would use in the implementation:\n\n- The core state will be a per-patch, per-harvest array such as `gddmaturity_thisyr(p, 1:mxharvests)`, paired with the existing per-harvest date record. The task instruction will define the array dimension and the expected output field schema.\n- Unused harvest slots for the current year will use a dedicated missing value, e.g. `-1.0`, matching the per-year harvest-date convention. State initialization outside active crop logic can still use the model's existing missing-value convention if needed, but the verifier will document what it checks.\n- Backward compatibility will mean: old restart inputs that lack the new `mxharvests` field must not abort; the code should detect the missing field/dimension and initialize per-harvest GDD values to the documented missing value.\n- Hidden tests will cover multiple harvests with different GDD thresholds, annual reset behavior, unused slots, restart read/write with the new field, and old restart read without the new field.\n- The reduced code will include enough CLM/CTSM-style state allocation, phenology update, history output, and restart-I/O structure that the solution is not just adding an array in one function.\n\nOn difficulty: I agree this is more careful model software engineering than a deep numerical-method task. I would prioritize the MOM6 and Noah-MP proposals first, but I think this one can still be viable if reviewers want a crop-phenology/state-management task with realistic restart and diagnostic constraints.\n"
-        },
-        {
-          "url": "https://github.com/harbor-framework/terminal-bench-science/discussions/295#discussioncomment-17287757",
-          "created_at": "2026-06-13T08:10:01Z",
-          "author": {
-            "login": "AllenGrahamHart",
-            "avatar_url": "https://avatars.githubusercontent.com/u/216503854?u=9e25e50782731d755d762fce91407f6173e9ef3c&v=4"
-          },
-          "body": "/approve"
-        },
-        {
-          "url": "https://github.com/harbor-framework/terminal-bench-science/discussions/295#discussioncomment-17287759",
-          "created_at": "2026-06-13T08:10:10Z",
-          "author": {
-            "login": "github-actions",
-            "avatar_url": null
-          },
-          "body": "## \u2705 Proposal Approved\n\ncc @ktwu01 @AllenGrahamHart\n\nHi Koutian,\n\nGreat news \u2014 your TB-Science task proposal **\"CLM5 Multi-Harvest Crop Phenology State\"** has been approved by the maintainers! \ud83c\udf89\n\nYou're now invited to build and submit your task as a Pull Request. Here's how to get started:\n\n1. **Implement your task** \u2014 follow the [Contributing Guide](https://github.com/harbor-framework/terminal-bench-science/blob/main/CONTRIBUTING.md) and the [Harbor task format](https://harborframework.com/docs/task-format). You can also browse [`tasks/`](https://github.com/harbor-framework/terminal-bench-science/tree/main/tasks) for reference implementations.\n2. **Submit a PR** \u2014 make sure the automated checks pass as much as possible, then open a PR against `main` and reference this discussion.\n\n**Deadline:** Tasks must be submitted and merged by **August 17, 2026**. Most tasks need a few rounds of review \u2014 please start early.\n\nFor more on the project, see the [TB-Science announcement](https://www.tbench.ai/news/tb-science-announcement) on tbench.ai.\n\nQuestions? Drop by [`#tb-science` on Discord](https://discord.gg/ZvcWupVXjz) or reply in this thread.\n\nLooking forward to your PR,\nSteven"
-        }
-      ],
-      "author": {
-        "login": "ktwu01",
-        "avatar_url": "https://github.com/ktwu01.png?size=80"
-      },
-      "domain": "earth-sciences",
-      "subfield": null,
-      "field": "Other",
-      "status": "approved",
-      "state": "closed",
-      "closed": true,
-      "llm_review": {
-        "recommendation": "uncertain",
-        "url": "https://github.com/harbor-framework/terminal-bench-science/discussions/295#discussioncomment-17286922"
-      },
-      "age_days": 3,
-      "updated_days": 0,
-      "has_pr": false,
-      "created_at": "2026-06-13T05:40:43Z",
-      "updated_at": "2026-06-16T21:28:10Z",
-      "closed_at": "2026-06-13T08:10:11Z",
-      "labels": [
-        "proposal-approved"
-      ]
     },
     {
       "number": 298,
@@ -14643,7 +14653,7 @@
         "recommendation": "accept",
         "url": "https://github.com/harbor-framework/terminal-bench-science/discussions/300#discussioncomment-17295111"
       },
-      "age_days": 2,
+      "age_days": 3,
       "updated_days": 0,
       "has_pr": false,
       "created_at": "2026-06-14T05:45:29Z",
@@ -15080,12 +15090,12 @@
       "atmospheric-sciences": {
         "merged": 0,
         "in_review": 2,
-        "proposed": 1
+        "proposed": 2
       },
       "environmental-sciences": {
         "merged": 0,
         "in_review": 0,
-        "proposed": 1
+        "proposed": 2
       },
       "geosciences": {
         "merged": 0,
@@ -15094,13 +15104,13 @@
       },
       "ocean-sciences": {
         "merged": 0,
-        "in_review": 0,
+        "in_review": 2,
         "proposed": 2
       },
       "_unknown": {
         "merged": 0,
         "in_review": 0,
-        "proposed": 2
+        "proposed": 0
       }
     },
     "life-sciences": {
@@ -15133,7 +15143,7 @@
     "mathematical-sciences": {
       "applied-mathematics": {
         "merged": 0,
-        "in_review": 3,
+        "in_review": 4,
         "proposed": 11
       },
       "autoformalization": {
@@ -15148,7 +15158,7 @@
       },
       "statistics": {
         "merged": 0,
-        "in_review": 1,
+        "in_review": 4,
         "proposed": 10
       },
       "_unknown": {
@@ -15158,6 +15168,21 @@
       }
     },
     "other": {
+      "engineering-sciences": {
+        "merged": 0,
+        "in_review": 0,
+        "proposed": 0
+      },
+      "interdisciplinary-sciences": {
+        "merged": 0,
+        "in_review": 0,
+        "proposed": 0
+      },
+      "other": {
+        "merged": 0,
+        "in_review": 0,
+        "proposed": 0
+      },
       "_unknown": {
         "merged": 0,
         "in_review": 0,
@@ -15177,7 +15202,7 @@
       },
       "materials-science": {
         "merged": 1,
-        "in_review": 0,
+        "in_review": 2,
         "proposed": 5
       },
       "physics": {

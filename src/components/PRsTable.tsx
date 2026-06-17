@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import {
   flexRender,
   getCoreRowModel,
@@ -180,7 +180,17 @@ function countBy<T>(items: T[], key: (t: T) => string | null): Record<string, nu
   return out
 }
 
-export function PRsTable({ prs }: { prs: PR[] }) {
+export function PRsTable({
+  prs,
+  externalField,
+  externalState,
+  onExternalFieldConsumed,
+}: {
+  prs: PR[]
+  externalField?: string | null
+  externalState?: "open" | "merged" | "closed" | null
+  onExternalFieldConsumed?: () => void
+}) {
   const { field_labels } = useTaxonomy()
   const [sorting, setSorting] = useState<SortingState>([
     // Newest first — sort by PR number descending. Avoids ties between PRs
@@ -467,6 +477,15 @@ export function PRsTable({ prs }: { prs: PR[] }) {
     for (const p of prs) c[p.state] = (c[p.state] ?? 0) + 1
     return c
   }, [prs])
+
+  // Receive filters from Stats and apply them.
+  useEffect(() => {
+    if (externalField || externalState) {
+      if (externalField) setField(externalField)
+      setState(externalState ?? "all")
+      onExternalFieldConsumed?.()
+    }
+  }, [externalField, externalState, onExternalFieldConsumed])
 
   return (
     <>

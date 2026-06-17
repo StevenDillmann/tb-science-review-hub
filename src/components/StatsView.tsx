@@ -1,138 +1,278 @@
+import { useMemo, useState } from "react"
+import { ArrowUpDown } from "lucide-react"
+
 import { cn } from "@/lib/utils"
-import { DOMAIN_LABELS, type Coverage, type Domain, type Stats } from "@/lib/data"
+import { DOMAIN_LABELS, type Domain, type PR, type Proposal } from "@/lib/data"
+
+const DOMAIN_TEXT: Record<Domain, string> = {
+  "earth-sciences": "text-blue-600 dark:text-blue-400",
+  "life-sciences": "text-green-600 dark:text-green-400",
+  "physical-sciences": "text-red-600 dark:text-red-400",
+  "mathematical-sciences": "text-amber-600 dark:text-amber-400",
+  "other": "text-zinc-500",
+}
 import { useTaxonomy } from "@/lib/taxonomy"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
 
-export function StatsView({ coverage, stats }: { coverage: Coverage; stats: Stats }) {
-  const { taxonomy } = useTaxonomy()
-  const KNOWN_ORDER: Domain[] = [
-    "earth-sciences",
-    "life-sciences",
-    "physical-sciences",
-    "mathematical-sciences",
-    "other",
-  ]
-  const domains = Object.keys(taxonomy) as Domain[]
-  const sortedDomains = [
-    ...KNOWN_ORDER.filter((d) => domains.includes(d)),
-    ...domains.filter((d) => !KNOWN_ORDER.includes(d)),
-  ]
+const KNOWN_ORDER: Domain[] = [
+  "earth-sciences",
+  "life-sciences",
+  "physical-sciences",
+  "mathematical-sciences",
+  "other",
+]
+
+export type PickKind =
+  | { kind: "proposals"; field: string; status?: "approved" | "pending" | "rejected" }
+  | { kind: "prs"; field: string; state?: "open" | "merged" | "closed" }
+
+type Row = {
+  domain: Domain
+  fieldSlug: string
+  fieldLabel: string
+  proposals: number
+  approved: number
+  prs: number
+  merged: number
+}
+
+type SortKey = "field" | "proposals" | "approved" | "prs" | "merged"
+
+export function StatsView({
+  proposals,
+  prs,
+  onPickField,
+}: {
+  proposals: Proposal[]
+  prs: PR[]
+  onPickField: (pick: PickKind) => void
+}) {
+  const { taxonomy, field_labels } = useTaxonomy()
+  const [sort, setSort] = useState<{ key: SortKey; desc: boolean }>({
+    key: "merged",
+    desc: true,
+  })
+
+  const rows = useMemo<Row[]>(() => {
+    const allDomains = Object.keys(taxonomy) as Domain[]
+    const sortedDomains = [
+      ...KNOWN_ORDER.filter((d) => allDomains.includes(d)),
+      ...allDomains.filter((d) => !KNOWN_ORDER.includes(d)),
+    ]
+    const out: Row[] = []
+    for (const d of sortedDomains) {
+      // Every discovered subfield in this domain.
+      for (const slug of Object.keys(taxonomy[d])) {
+        const inField = (p: { subfield: string | null }) => p.subfield === slug
+        const propsInField = proposals.filter(inField)
+        const prsInField = prs.filter(inField)
+        out.push({
+          domain: d,
+          fieldSlug: slug,
+          fieldLabel: field_labels[slug] ?? slug,
+          proposals: propsInField.length,
+          approved: propsInField.filter((p) => p.status === "approved").length,
+          prs: prsInField.length,
+          merged: prsInField.filter((p) => p.state === "merged").length,
+        })
+      }
+    }
+    // One catch-all bucket for anything without a recognized subfield,
+    // regardless of which domain it claimed.
+    const uncatProps = proposals.filter((p) => !p.subfield)
+    const uncatPRs = prs.filter((p) => !p.subfield)
+    if (uncatProps.length > 0 || uncatPRs.length > 0) {
+      out.push({
+        domain: "other",
+        fieldSlug: "__unknown",
+        fieldLabel: "(uncategorized)",
+        proposals: uncatProps.length,
+        approved: uncatProps.filter((p) => p.status === "approved").length,
+        prs: uncatPRs.length,
+        merged: uncatPRs.filter((p) => p.state === "merged").length,
+      })
+    }
+    return out
+  }, [taxonomy, field_labels, proposals, prs])
+
+  const sortedRows = useMemo(() => {
+    // Cascade tiebreakers: merged → prs → approved → proposals → field label.
+    // The active column is moved to the front of the cascade.
+    const cascade: SortKey[] = ["merged", "prs", "approved", "proposals", "field"]
+    const order: SortKey[] = [sort.key, ...cascade.filter((k) => k !== sort.key)]
+    const copy = [...rows]
+    copy.sort((a, b) => {
+      for (const k of order) {
+        const cmp =
+          k === "field"
+            ? a.fieldLabel.localeCompare(b.fieldLabel)
+            : a[k] - b[k]
+        if (cmp !== 0) return sort.desc ? -cmp : cmp
+      }
+      return 0
+    })
+    return copy
+  }, [rows, sort])
+
+  const toggle = (k: SortKey) =>
+    setSort((s) =>
+      s.key === k ? { key: k, desc: !s.desc } : { key: k, desc: k !== "field" },
+    )
+
+  const totals = useMemo(() => {
+    return rows.reduce(
+      (acc, r) => ({
+        proposals: acc.proposals + r.proposals,
+        approved: acc.approved + r.approved,
+        prs: acc.prs + r.prs,
+        merged: acc.merged + r.merged,
+      }),
+      { proposals: 0, approved: 0, prs: 0, merged: 0 },
+    )
+  }, [rows])
+
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
-        <StatCard label="Open task PRs" value={stats.open_prs} />
-        <StatCard
-          label="Needs reviewer"
-          value={stats.needs_reviewer}
-          accent="text-amber-600"
-        />
-        <StatCard
-          label="Needs author"
-          value={stats.needs_author}
-          accent="text-violet-600"
-        />
-        <StatCard label="Open task proposals" value={stats.open_proposals} />
-        <StatCard label="Pending task proposals" value={stats.pending_proposals} />
-      </div>
-
-      <section className="rounded-lg border">
-        <header className="border-b px-4 py-3">
-          <h2 className="text-sm font-semibold">Domain coverage</h2>
-          <p className="text-xs text-muted-foreground">
-            Merged tasks · open PRs in review · open proposals · gaps (no activity).
-          </p>
-        </header>
-        <div className="divide-y">
-          {sortedDomains.map((domain) => (
-            <DomainRow
-              key={domain}
-              domain={domain}
-              subfields={Object.keys(taxonomy[domain])}
-              coverage={coverage[domain] ?? {}}
-            />
+    <div className="rounded-lg border bg-card">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <SortHead label="Field" k="field" sort={sort} onToggle={toggle} />
+            <SortHead label="Proposals" k="proposals" sort={sort} onToggle={toggle} numeric total={totals.proposals} />
+            <SortHead label="Approved" k="approved" sort={sort} onToggle={toggle} numeric total={totals.approved} />
+            <SortHead label="PRs" k="prs" sort={sort} onToggle={toggle} numeric total={totals.prs} />
+            <SortHead label="Merged" k="merged" sort={sort} onToggle={toggle} numeric total={totals.merged} />
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {sortedRows.map((r) => (
+            <TableRow key={`${r.domain}/${r.fieldSlug}`}>
+              <TableCell>
+                <span className="inline-flex items-center gap-2">
+                  <span className="font-medium">{r.fieldLabel}</span>
+                  {r.fieldSlug !== "__unknown" && (
+                    <span
+                      className={cn(
+                        "text-[10px] uppercase tracking-wider",
+                        DOMAIN_TEXT[r.domain],
+                      )}
+                    >
+                      {DOMAIN_LABELS[r.domain] ?? r.domain}
+                    </span>
+                  )}
+                </span>
+              </TableCell>
+              <NumCell
+                value={r.proposals}
+                onClick={() =>
+                  onPickField({ kind: "proposals", field: r.fieldSlug })
+                }
+              />
+              <NumCell
+                value={r.approved}
+                onClick={() =>
+                  onPickField({
+                    kind: "proposals",
+                    field: r.fieldSlug,
+                    status: "approved",
+                  })
+                }
+              />
+              <NumCell
+                value={r.prs}
+                onClick={() =>
+                  onPickField({ kind: "prs", field: r.fieldSlug })
+                }
+              />
+              <NumCell
+                value={r.merged}
+                onClick={() =>
+                  onPickField({
+                    kind: "prs",
+                    field: r.fieldSlug,
+                    state: "merged",
+                  })
+                }
+              />
+            </TableRow>
           ))}
-        </div>
-      </section>
+        </TableBody>
+      </Table>
     </div>
   )
 }
 
-function StatCard({
+function SortHead({
   label,
-  value,
-  accent,
+  k,
+  sort,
+  onToggle,
+  numeric,
+  total,
 }: {
   label: string
+  k: SortKey
+  sort: { key: SortKey; desc: boolean }
+  onToggle: (k: SortKey) => void
+  numeric?: boolean
+  total?: number
+}) {
+  return (
+    <TableHead className={numeric ? "text-right" : ""}>
+      <button
+        type="button"
+        onClick={() => onToggle(k)}
+        className={cn(
+          "inline-flex items-center gap-1.5",
+          numeric && "ml-auto",
+        )}
+      >
+        <span className="uppercase">{label}</span>
+        {total !== undefined && (
+          <span className="font-mono text-[10px] normal-case text-muted-foreground">
+            {total}
+          </span>
+        )}
+        <ArrowUpDown
+          className={cn(
+            "h-3 w-3",
+            sort.key === k ? "" : "opacity-40",
+          )}
+        />
+      </button>
+    </TableHead>
+  )
+}
+
+function NumCell({
+  value,
+  onClick,
+}: {
   value: number
-  accent?: string
+  onClick: () => void
 }) {
-  return (
-    <div className="rounded-lg border bg-card p-4 shadow-sm">
-      <div className="text-xs uppercase tracking-wide text-muted-foreground">{label}</div>
-      <div className={cn("mt-1 text-2xl font-semibold", accent)}>{value}</div>
-    </div>
-  )
-}
-
-function DomainRow({
-  domain,
-  subfields,
-  coverage,
-}: {
-  domain: Domain
-  subfields: string[]
-  coverage: Record<string, { merged: number; in_review: number; proposed: number }>
-}) {
-  const { field_labels } = useTaxonomy()
-  // When a domain has no discovered subfields (e.g. `other`), surface a single
-  // row using the `_unknown` bucket so the domain is still visible.
-  const rows = subfields.length > 0 ? subfields : ["_unknown"]
-  return (
-    <div className="grid grid-cols-1 gap-4 px-4 py-3 md:grid-cols-[180px_1fr]">
-      <div className="font-medium">{DOMAIN_LABELS[domain] ?? domain}</div>
-      <div className="grid gap-1">
-        {rows.map((sub) => {
-          const c = coverage[sub] ?? { merged: 0, in_review: 0, proposed: 0 }
-          const total = c.merged + c.in_review + c.proposed
-          const label =
-            sub === "_unknown" ? "(uncategorized)" : (field_labels[sub] ?? sub)
-          return (
-            <div key={sub} className="grid grid-cols-[180px_1fr_auto] items-center gap-3 text-sm">
-              <span className="font-medium">{label}</span>
-              <CoverageBar merged={c.merged} inReview={c.in_review} proposed={c.proposed} />
-              <span className="font-mono text-xs text-muted-foreground">
-                {c.merged}m · {c.in_review}r · {c.proposed}p {total === 0 && "· gap"}
-              </span>
-            </div>
-          )
-        })}
-      </div>
-    </div>
-  )
-}
-
-function CoverageBar({
-  merged,
-  inReview,
-  proposed,
-}: {
-  merged: number
-  inReview: number
-  proposed: number
-}) {
-  const total = merged + inReview + proposed
-  if (total === 0) {
+  if (value === 0) {
     return (
-      <div className="h-2 rounded bg-muted">
-        <div className="h-full w-full rounded bg-[repeating-linear-gradient(45deg,transparent_0,transparent_4px,color-mix(in_oklab,var(--muted-foreground)_15%,transparent)_4px,color-mix(in_oklab,var(--muted-foreground)_15%,transparent)_8px)]" />
-      </div>
+      <TableCell className="text-right">
+        <span className="font-mono text-xs text-muted-foreground/40">0</span>
+      </TableCell>
     )
   }
-  const seg = (n: number) => `${(n / total) * 100}%`
   return (
-    <div className="flex h-2 overflow-hidden rounded bg-muted">
-      <div className="bg-green-500" style={{ width: seg(merged) }} />
-      <div className="bg-amber-400" style={{ width: seg(inReview) }} />
-      <div className="bg-sky-400" style={{ width: seg(proposed) }} />
-    </div>
+    <TableCell className="text-right">
+      <button
+        type="button"
+        onClick={onClick}
+        className="rounded px-1.5 py-0.5 font-mono text-xs hover:bg-accent"
+      >
+        {value}
+      </button>
+    </TableCell>
   )
 }

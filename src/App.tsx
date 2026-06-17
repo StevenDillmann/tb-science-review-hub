@@ -34,6 +34,16 @@ function formatGeneratedAt(iso: string): string {
 export default function App() {
   const [data, setData] = useState<Data | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [tab, setTab] = useState<string>("proposals")
+  // When the user clicks a count in Stats, the relevant tab opens and these
+  // forced filters get applied by the table (then cleared).
+  const [forcedField, setForcedField] = useState<string | null>(null)
+  const [forcedProposalStatus, setForcedProposalStatus] = useState<
+    "approved" | "pending" | "rejected" | null
+  >(null)
+  const [forcedPRState, setForcedPRState] = useState<
+    "open" | "merged" | "closed" | null
+  >(null)
   const { resolved } = useTheme()
 
   useEffect(() => {
@@ -54,7 +64,7 @@ export default function App() {
             />
             <div className="font-prose">
               <h1 className="text-xl font-semibold uppercase tracking-wider">
-                Terminal-Bench Science · Submission and Review Hub
+                Terminal-Bench Science · Hub
               </h1>
               <p className="text-sm text-muted-foreground">
                 Task proposal and pull requests for Terminal-Bench Science.
@@ -140,7 +150,16 @@ export default function App() {
             <div className="mb-6">
               <Pipeline />
             </div>
-            <Tabs defaultValue="proposals">
+            <Tabs
+              value={tab}
+              onValueChange={(v) => {
+                setTab(v)
+                // Clear forced filters when the user moves tabs manually.
+                setForcedField(null)
+                setForcedProposalStatus(null)
+                setForcedPRState(null)
+              }}
+            >
               <TabsList>
                 <TabsTrigger value="proposals">
                   Task Proposals
@@ -154,17 +173,50 @@ export default function App() {
                     {data.prs.length}
                   </Badge>
                 </TabsTrigger>
-                <TabsTrigger value="stats">Stats</TabsTrigger>
+                <TabsTrigger value="stats">Statistics</TabsTrigger>
               </TabsList>
 
               <TabsContent value="proposals" className="mt-6">
-                <ProposalsTable proposals={data.proposals} />
+                <ProposalsTable
+                  proposals={data.proposals}
+                  externalField={tab === "proposals" ? forcedField : null}
+                  externalStatus={
+                    tab === "proposals" ? forcedProposalStatus : null
+                  }
+                  onExternalFieldConsumed={() => {
+                    setForcedField(null)
+                    setForcedProposalStatus(null)
+                  }}
+                />
               </TabsContent>
               <TabsContent value="prs" className="mt-6">
-                <PRsTable prs={data.prs} />
+                <PRsTable
+                  prs={data.prs}
+                  externalField={tab === "prs" ? forcedField : null}
+                  externalState={tab === "prs" ? forcedPRState : null}
+                  onExternalFieldConsumed={() => {
+                    setForcedField(null)
+                    setForcedPRState(null)
+                  }}
+                />
               </TabsContent>
               <TabsContent value="stats" className="mt-6">
-                <StatsView coverage={data.coverage} stats={data.stats} />
+                <StatsView
+                  proposals={data.proposals}
+                  prs={data.prs}
+                  onPickField={(pick) => {
+                    setForcedField(pick.field)
+                    if (pick.kind === "proposals") {
+                      setForcedProposalStatus(pick.status ?? null)
+                      setForcedPRState(null)
+                      setTab("proposals")
+                    } else {
+                      setForcedPRState(pick.state ?? null)
+                      setForcedProposalStatus(null)
+                      setTab("prs")
+                    }
+                  }}
+                />
               </TabsContent>
             </Tabs>
           </TaxonomyProvider>

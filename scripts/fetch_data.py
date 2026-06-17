@@ -228,11 +228,48 @@ def count_merged_tasks(tree: list[dict[str, Any]]) -> dict[tuple[str, str], int]
 
 # --- Field resolution per PR / proposal -------------------------------------
 
-def field_from_pr_files(files: list[str], taxonomy: dict[str, dict[str, list[str]]]) -> tuple[str | None, str | None]:
+def build_task_location_map(tree: list[dict[str, Any]]) -> dict[str, tuple[str, str]]:
+    """Map task-folder-name → (domain, subfield) from the live tree.
+
+    Used to recover the current home of a task that a (now-merged) PR touched
+    under a folder that has since been renamed or split.
+    """
+    out: dict[str, tuple[str, str]] = {}
+    for entry in tree:
+        if entry.get("type") != "tree":
+            continue
+        parts = entry.get("path", "").split("/")
+        if len(parts) == 4 and parts[0] == "tasks":
+            out[parts[3]] = (parts[1], parts[2])
+    return out
+
+
+# Legacy subfield folder names that no longer exist in the live taxonomy.
+# Maps (domain, legacy-subfield) → canonical (domain, subfield). When the
+# upstream taxonomy gets reshaped, add an entry here so PRs filed against the
+# old layout still get categorized correctly.
+LEGACY_SUBFIELD_ALIASES: dict[tuple[str, str], tuple[str, str]] = {
+    ("physical-sciences", "chemistry-and-materials"): ("physical-sciences", "materials-science"),
+    ("physical-sciences", "material-science"): ("physical-sciences", "materials-science"),
+    ("physical-sciences", "pde"): ("mathematical-sciences", "applied-mathematics"),
+    ("mathematical-sciences", "data-science-and-statistics"): ("mathematical-sciences", "statistics"),
+    ("mathematical-sciences", "others"): ("mathematical-sciences", "applied-mathematics"),
+    ("earth-sciences", "water-sciences"): ("earth-sciences", "ocean-sciences"),
+}
+
+
+def field_from_pr_files(
+    files: list[str],
+    taxonomy: dict[str, dict[str, list[str]]],
+    task_locations: dict[str, tuple[str, str]] | None = None,
+) -> tuple[str | None, str | None]:
     """Pick the (domain, subfield) implied by the file paths the PR touches.
 
-    Looks for any path of shape `tasks/<domain>/<subfield>/...` where both
-    levels match the discovered taxonomy. Returns the first match.
+    Priority order:
+      1. Direct match against the live taxonomy.
+      2. Lookup the task folder name in the current tree (rename recovery —
+         the most accurate signal for merged-then-moved tasks).
+      3. Legacy subfield alias for unmerged PRs whose folder was renamed.
     """
     for p in files:
         parts = p.split("/")
@@ -241,6 +278,21 @@ def field_from_pr_files(files: list[str], taxonomy: dict[str, dict[str, list[str
         domain, subfield = parts[1], parts[2]
         if domain in taxonomy and subfield in taxonomy.get(domain, {}):
             return domain, subfield
+    if task_locations:
+        for p in files:
+            parts = p.split("/")
+            if len(parts) < 4 or parts[0] != "tasks":
+                continue
+            loc = task_locations.get(parts[3])
+            if loc and loc[0] in taxonomy and loc[1] in taxonomy.get(loc[0], {}):
+                return loc
+    for p in files:
+        parts = p.split("/")
+        if len(parts) < 3 or parts[0] != "tasks":
+            continue
+        alias = LEGACY_SUBFIELD_ALIASES.get((parts[1], parts[2]))
+        if alias and alias[0] in taxonomy and alias[1] in taxonomy.get(alias[0], {}):
+            return alias
     return None, None
 
 
@@ -696,6 +748,7 @@ def build_prs(
     now: datetime,
     taxonomy: dict[str, dict[str, list[str]]],
     field_to_domain: dict[str, str],
+    task_locations: dict[str, tuple[str, str]] | None = None,
     proposals: list[dict[str, Any]] | None = None,
 ) -> list[dict[str, Any]]:
     proposals_by_num: dict[int, dict[str, Any]] = {}
@@ -715,7 +768,7 @@ def build_prs(
         files = [f["path"] for f in file_nodes]
 
         # Priority 1: file paths in the PR. Priority 2: title prefix.
-        domain, subfield = field_from_pr_files(files, taxonomy)
+        domain, subfield = field_from_pr_files(files, taxonomy, task_locations)
 
         # Find the task directory the PR adds (for the side-panel previewer):
         # the first `tasks/<domain>/<subfield>/<task>/` containing a task.toml.
@@ -939,6 +992,7 @@ def main() -> int:
 
     tree = fetch_tree()
     taxonomy, field_labels, field_to_domain = discover_taxonomy(tree)
+    task_locations = build_task_location_map(tree)
     merged_counts = count_merged_tasks(tree)
 
     if not taxonomy:
@@ -960,7 +1014,7 @@ def main() -> int:
     # We pass an empty pr_titles list initially since has_pr can still update
     # after PR build, but the PR's linked_proposal points back here.
     proposals_pre = build_proposals(discussion_nodes, now, [], field_to_domain)
-    prs = build_prs(pr_nodes, now, taxonomy, field_to_domain, proposals_pre)
+    prs = build_prs(pr_nodes, now, taxonomy, field_to_domain, task_locations, proposals_pre)
     proposals = build_proposals(
         discussion_nodes, now, [p["title"] for p in prs], field_to_domain
     )
