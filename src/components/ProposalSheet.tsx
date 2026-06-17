@@ -59,8 +59,10 @@ export function ProposalSheet({
                 {proposal.title}
               </SheetTitle>
               <SheetDescription className="flex flex-wrap items-center gap-x-3 gap-y-1 pt-1">
-                <UserCell user={proposal.author} />
-                <FieldChip subfield={proposal.subfield} fallback={proposal.field} />
+                <span className="inline-flex items-center gap-1.5">
+                  <UserCell user={proposal.author} />
+                  <FieldChip subfield={proposal.subfield} fallback={proposal.field} />
+                </span>
                 <span className="inline-flex items-center gap-1.5">
                   <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
                     LLM review
@@ -83,7 +85,7 @@ export function ProposalSheet({
                   rel="noreferrer"
                   className="ml-auto inline-flex items-center gap-1 underline underline-offset-2 hover:text-foreground"
                 >
-                  Open on GitHub <ExternalLink className="h-3 w-3" />
+                  GitHub <ExternalLink className="h-3 w-3" />
                 </a>
               </SheetDescription>
             </SheetHeader>

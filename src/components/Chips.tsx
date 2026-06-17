@@ -369,10 +369,8 @@ export function RubricChip({
   const text = clean
     ? "text-green-700 dark:text-green-400"
     : "text-amber-700 dark:text-amber-400"
-  const dot = clean ? "bg-green-500" : "bg-amber-500"
   const inner = (
-    <span className={cn("inline-flex items-center gap-1.5 text-xs font-medium", text)}>
-      <span className={cn("size-2 rounded-full", dot)} />
+    <span className={cn("text-xs font-medium", text)}>
       {passed}/{total}
     </span>
   )

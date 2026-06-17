@@ -292,7 +292,7 @@ query($owner:String!,$name:String!,$cursor:String){
       pageInfo{ hasNextPage endCursor }
       nodes{
         number title url isDraft state mergedAt closedAt createdAt updatedAt
-        bodyText
+        bodyText body headRefOid
         author{ login ... on User { avatarUrl } }
         labels(first:30){ nodes{ name color } }
         reviewRequests(first:10){
@@ -715,8 +715,25 @@ def build_prs(
         files = [f["path"] for f in file_nodes]
 
         # Priority 1: file paths in the PR. Priority 2: title prefix.
-        files = [f["path"] for f in n.get("files", {}).get("nodes", []) or []]
         domain, subfield = field_from_pr_files(files, taxonomy)
+
+        # Find the task directory the PR adds (for the side-panel previewer):
+        # the first `tasks/<domain>/<subfield>/<task>/` containing a task.toml.
+        task_dir: str | None = None
+        for f in file_nodes:
+            path = f.get("path", "")
+            if f.get("changeType") == "ADDED" and path.endswith("/task.toml"):
+                parts = path.split("/")
+                if len(parts) == 5 and parts[0] == "tasks":
+                    task_dir = "/".join(parts[:4])
+                    break
+        if not task_dir:
+            for path in files:
+                if path.endswith("/task.toml"):
+                    parts = path.split("/")
+                    if len(parts) == 5 and parts[0] == "tasks":
+                        task_dir = "/".join(parts[:4])
+                        break
         raw_field: str | None = None
         if not subfield:
             domain, subfield, raw_field = field_from_title_fallback(
@@ -777,6 +794,20 @@ def build_prs(
             "rubric": rubric,
             "cheat": cheat,
             "linked_proposal": linked_proposal,
+            "body": n.get("body") or "",
+            "head_sha": n.get("headRefOid"),
+            "task_dir": task_dir,
+            # Every file path inside the PR's task directory (relative paths)
+            # so the side panel can list tests/ and solution/ contents.
+            "task_files": (
+                sorted(
+                    f[len(task_dir) + 1 :]
+                    for f in files
+                    if task_dir and f.startswith(f"{task_dir}/")
+                )
+                if task_dir
+                else []
+            ),
             "created_at": n["createdAt"],
             "updated_at": n["updatedAt"],
             "merged_at": n.get("mergedAt"),

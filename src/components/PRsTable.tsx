@@ -43,6 +43,7 @@ import {
 import { ColumnFilter } from "./ColumnFilter"
 import { FieldColumnFilter } from "./FieldColumnFilter"
 import { FilterChip, SearchInput } from "./Filters"
+import { PRSheet } from "./PRSheet"
 
 function StageMini({ filled }: { filled: 0 | 1 | 2 | 3 }) {
   return (
@@ -188,6 +189,7 @@ export function PRsTable({ prs }: { prs: PR[] }) {
   ])
   const [search, setSearch] = useState("")
   const [state, setState] = useState<PRState | "all">("all")
+  const [active, setActive] = useState<PR | null>(null)
   const [field, setField] = useState<string | null>(null)
   const [stage, setStage] = useState<string | null>(null)
   const [ball, setBall] = useState<string | null>(null)
@@ -279,14 +281,13 @@ export function PRsTable({ prs }: { prs: PR[] }) {
           </button>
         ),
         cell: ({ row }) => (
-          <a
-            href={row.original.url}
-            target="_blank"
-            rel="noreferrer"
-            className="font-medium hover:underline"
+          <button
+            type="button"
+            onClick={() => setActive(row.original)}
+            className="text-left font-medium hover:underline underline-offset-4"
           >
             {row.original.title}
-          </a>
+          </button>
         ),
       },
       {
@@ -373,13 +374,13 @@ export function PRsTable({ prs }: { prs: PR[] }) {
       {
         accessorKey: "trials",
         size: 170,
-        header: "FRONTIER TRIALS",
+        header: () => <span className="whitespace-nowrap">FRONTIER TRIALS</span>,
         cell: ({ row }) => <TrialsChip trials={row.original.trials} />,
       },
       {
         accessorKey: "cheat",
-        size: 100,
-        header: "CHEAT",
+        size: 140,
+        header: () => <span className="whitespace-nowrap">CHEAT TRIALS</span>,
         cell: ({ row }) => <CheatChip cheat={row.original.cheat} />,
       },
       {
@@ -468,6 +469,12 @@ export function PRsTable({ prs }: { prs: PR[] }) {
   }, [prs])
 
   return (
+    <>
+    <PRSheet
+      pr={active}
+      open={active !== null}
+      onOpenChange={(v) => !v && setActive(null)}
+    />
     <div className="space-y-3">
       <div className="flex flex-wrap items-center gap-3 rounded-lg border bg-muted/30 p-3">
         <SearchInput
@@ -578,5 +585,6 @@ export function PRsTable({ prs }: { prs: PR[] }) {
         </Table>
       </div>
     </div>
+    </>
   )
 }
