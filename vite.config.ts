@@ -3,8 +3,8 @@ import { defineConfig } from "vite"
 import react from "@vitejs/plugin-react"
 
 export default defineConfig({
-  // Custom domain (tb-science-dashboard.tbench.ai) serves at root.
-  base: "/",
+  // Match the repo name so assets resolve at https://<user>.github.io/tb-science-review-hub/
+  base: "/tb-science-review-hub/",
   plugins: [react()],
   resolve: {
     alias: { "@": path.resolve(__dirname, "./src") },
