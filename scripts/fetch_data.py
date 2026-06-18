@@ -757,6 +757,38 @@ def build_prs(
         if p.get("proposal_number") is not None:
             proposals_by_num[p["proposal_number"]] = p
         proposals_by_discussion[p["number"]] = p
+
+    # First pass: collect `task fix` PRs and group them by the task directory
+    # they touch. This lets us attach a `fixes` list to each `new task` PR row
+    # without showing fix PRs as standalone entries in the dashboard.
+    fixes_by_task_dir: dict[str, list[dict[str, Any]]] = {}
+    for n in nodes:
+        labels = [lab["name"] for lab in n["labels"]["nodes"]]
+        if "task fix" not in labels:
+            continue
+        files = [f["path"] for f in (n.get("files", {}).get("nodes", []) or [])]
+        fix_task_dir: str | None = None
+        for path in files:
+            parts = path.split("/")
+            if len(parts) >= 5 and parts[0] == "tasks":
+                fix_task_dir = "/".join(parts[:4])
+                break
+        if not fix_task_dir:
+            continue
+        fixes_by_task_dir.setdefault(fix_task_dir, []).append({
+            "number": n["number"],
+            "title": n["title"],
+            "url": n["url"],
+            "state": (n.get("state") or "OPEN").lower(),
+            "merged_at": n.get("mergedAt"),
+            "closed_at": n.get("closedAt"),
+            "created_at": n["createdAt"],
+            "author": {
+                "login": (n.get("author") or {}).get("login", "ghost"),
+                "avatar_url": (n.get("author") or {}).get("avatarUrl"),
+            },
+        })
+
     rows = []
     for n in nodes:
         labels = [lab["name"] for lab in n["labels"]["nodes"]]
@@ -866,6 +898,10 @@ def build_prs(
             "merged_at": n.get("mergedAt"),
             "closed_at": n.get("closedAt"),
             "labels": labels,
+            "fixes": sorted(
+                fixes_by_task_dir.get(task_dir, []) if task_dir else [],
+                key=lambda f: f["number"],
+            ),
         })
     return rows
 

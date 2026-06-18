@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react"
-import { ArrowUpDown } from "lucide-react"
+import { Fragment, useMemo, useState } from "react"
+import { ArrowUpDown, ChevronDown, ChevronRight } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { DOMAIN_LABELS, type Domain, type PR, type Proposal } from "@/lib/data"
@@ -10,6 +10,14 @@ const DOMAIN_TEXT: Record<Domain, string> = {
   "physical-sciences": "text-red-600 dark:text-red-400",
   "mathematical-sciences": "text-amber-600 dark:text-amber-400",
   "other-sciences": "text-zinc-500",
+}
+
+const DOMAIN_BG: Record<Domain, string> = {
+  "earth-sciences": "bg-blue-50 dark:bg-blue-950/30",
+  "life-sciences": "bg-green-50 dark:bg-green-950/30",
+  "physical-sciences": "bg-red-50 dark:bg-red-950/30",
+  "mathematical-sciences": "bg-amber-50 dark:bg-amber-950/30",
+  "other-sciences": "bg-zinc-100 dark:bg-zinc-800/40",
 }
 import { useTaxonomy } from "@/lib/taxonomy"
 import {
@@ -59,6 +67,14 @@ export function StatsView({
     key: "merged",
     desc: true,
   })
+  const [expanded, setExpanded] = useState<Set<Domain>>(new Set())
+  const toggleDomain = (d: Domain) =>
+    setExpanded((prev) => {
+      const next = new Set(prev)
+      if (next.has(d)) next.delete(d)
+      else next.add(d)
+      return next
+    })
 
   const rows = useMemo<Row[]>(() => {
     const allDomains = Object.keys(taxonomy) as Domain[]
@@ -102,23 +118,46 @@ export function StatsView({
     return out
   }, [taxonomy, field_labels, proposals, prs])
 
-  const sortedRows = useMemo(() => {
-    // Cascade tiebreakers: merged → prs → approved → proposals → field label.
-    // The active column is moved to the front of the cascade.
+  // Group rows by domain (KNOWN_ORDER), then sort within each group using the
+  // currently-selected column with the same cascade tiebreakers.
+  const groupedRows = useMemo(() => {
     const cascade: SortKey[] = ["merged", "prs", "approved", "proposals", "field"]
     const order: SortKey[] = [sort.key, ...cascade.filter((k) => k !== sort.key)]
-    const copy = [...rows]
-    copy.sort((a, b) => {
-      for (const k of order) {
-        const cmp =
-          k === "field"
-            ? a.fieldLabel.localeCompare(b.fieldLabel)
-            : a[k] - b[k]
-        if (cmp !== 0) return sort.desc ? -cmp : cmp
-      }
-      return 0
-    })
-    return copy
+    const byDomain = new Map<Domain | "__unknown", Row[]>()
+    for (const r of rows) {
+      const key = r.fieldSlug === "__unknown" ? "__unknown" : r.domain
+      const bucket = byDomain.get(key) ?? []
+      bucket.push(r)
+      byDomain.set(key, bucket)
+    }
+    for (const bucket of byDomain.values()) {
+      bucket.sort((a, b) => {
+        for (const k of order) {
+          const cmp =
+            k === "field"
+              ? a.fieldLabel.localeCompare(b.fieldLabel)
+              : a[k] - b[k]
+          if (cmp !== 0) return sort.desc ? -cmp : cmp
+        }
+        return 0
+      })
+    }
+    const ordered: { domain: Domain; subtotals: { proposals: number; approved: number; prs: number; merged: number }; children: Row[] }[] = []
+    for (const d of KNOWN_ORDER) {
+      const children = byDomain.get(d) ?? []
+      if (children.length === 0) continue
+      const subtotals = children.reduce(
+        (acc, r) => ({
+          proposals: acc.proposals + r.proposals,
+          approved: acc.approved + r.approved,
+          prs: acc.prs + r.prs,
+          merged: acc.merged + r.merged,
+        }),
+        { proposals: 0, approved: 0, prs: 0, merged: 0 },
+      )
+      ordered.push({ domain: d, subtotals, children })
+    }
+    return { groups: ordered, uncategorized: byDomain.get("__unknown") ?? [] }
   }, [rows, sort])
 
   const toggle = (k: SortKey) =>
@@ -151,57 +190,133 @@ export function StatsView({
           </TableRow>
         </TableHeader>
         <TableBody>
-          {sortedRows.map((r) => (
-            <TableRow key={`${r.domain}/${r.fieldSlug}`}>
-              <TableCell>
-                <span className="inline-flex items-center gap-2">
-                  <span className="font-medium">{r.fieldLabel}</span>
-                  {r.fieldSlug !== "__unknown" && (
+          {groupedRows.groups.map((g) => {
+            const isOpen = expanded.has(g.domain)
+            return (
+            <Fragment key={g.domain}>
+              <TableRow
+                className={cn(
+                  "cursor-pointer border-t-2 transition-colors hover:brightness-95 dark:hover:brightness-110",
+                  DOMAIN_BG[g.domain],
+                )}
+                onClick={() => toggleDomain(g.domain)}
+              >
+                <TableCell className="py-2">
+                  <span className="inline-flex items-center gap-2">
+                    {isOpen ? (
+                      <ChevronDown className="h-3 w-3 opacity-60" />
+                    ) : (
+                      <ChevronRight className="h-3 w-3 opacity-60" />
+                    )}
                     <span
                       className={cn(
-                        "text-[10px] uppercase tracking-wider",
-                        DOMAIN_TEXT[r.domain],
+                        "text-xs font-bold uppercase tracking-wider",
+                        DOMAIN_TEXT[g.domain],
                       )}
                     >
-                      {DOMAIN_LABELS[r.domain] ?? r.domain}
+                      {DOMAIN_LABELS[g.domain] ?? g.domain}
                     </span>
-                  )}
-                </span>
-              </TableCell>
-              <NumCell
-                value={r.proposals}
-                onClick={() =>
-                  onPickField({ kind: "proposals", field: r.fieldSlug })
-                }
-              />
-              <NumCell
-                value={r.approved}
-                onClick={() =>
-                  onPickField({
-                    kind: "proposals",
-                    field: r.fieldSlug,
-                    status: "approved",
-                  })
-                }
-              />
-              <NumCell
-                value={r.prs}
-                onClick={() =>
-                  onPickField({ kind: "prs", field: r.fieldSlug })
-                }
-              />
-              <NumCell
-                value={r.merged}
-                onClick={() =>
-                  onPickField({
-                    kind: "prs",
-                    field: r.fieldSlug,
-                    state: "merged",
-                  })
-                }
-              />
-            </TableRow>
-          ))}
+                    {!isOpen && g.children.length > 0 && (
+                      <span className="text-[11px] text-muted-foreground/70">
+                        {g.children.map((c) => c.fieldLabel).join(", ")}
+                      </span>
+                    )}
+                  </span>
+                </TableCell>
+                <SubtotalCell value={g.subtotals.proposals} />
+                <SubtotalCell value={g.subtotals.approved} />
+                <SubtotalCell value={g.subtotals.prs} />
+                <SubtotalCell value={g.subtotals.merged} />
+              </TableRow>
+              {isOpen && g.children.map((r) => (
+                <TableRow key={`${r.domain}/${r.fieldSlug}`}>
+                  <TableCell className="pl-8 font-medium">{r.fieldLabel}</TableCell>
+                  <NumCell
+                    value={r.proposals}
+                    onClick={() =>
+                      onPickField({ kind: "proposals", field: r.fieldSlug })
+                    }
+                  />
+                  <NumCell
+                    value={r.approved}
+                    onClick={() =>
+                      onPickField({
+                        kind: "proposals",
+                        field: r.fieldSlug,
+                        status: "approved",
+                      })
+                    }
+                  />
+                  <NumCell
+                    value={r.prs}
+                    onClick={() =>
+                      onPickField({ kind: "prs", field: r.fieldSlug })
+                    }
+                  />
+                  <NumCell
+                    value={r.merged}
+                    onClick={() =>
+                      onPickField({
+                        kind: "prs",
+                        field: r.fieldSlug,
+                        state: "merged",
+                      })
+                    }
+                  />
+                </TableRow>
+              ))}
+            </Fragment>
+            )
+          })}
+          {groupedRows.uncategorized.length > 0 &&
+            groupedRows.uncategorized.map((r) => (
+              <TableRow key={`uncat/${r.fieldSlug}`} className="border-t">
+                <TableCell className="pl-8 font-medium italic text-muted-foreground">
+                  {r.fieldLabel}
+                </TableCell>
+                <NumCell
+                  value={r.proposals}
+                  onClick={() =>
+                    onPickField({ kind: "proposals", field: r.fieldSlug })
+                  }
+                />
+                <NumCell
+                  value={r.approved}
+                  onClick={() =>
+                    onPickField({
+                      kind: "proposals",
+                      field: r.fieldSlug,
+                      status: "approved",
+                    })
+                  }
+                />
+                <NumCell
+                  value={r.prs}
+                  onClick={() =>
+                    onPickField({ kind: "prs", field: r.fieldSlug })
+                  }
+                />
+                <NumCell
+                  value={r.merged}
+                  onClick={() =>
+                    onPickField({
+                      kind: "prs",
+                      field: r.fieldSlug,
+                      state: "merged",
+                    })
+                  }
+                />
+              </TableRow>
+            ))}
+          <TableRow className="border-t-2 bg-muted/40">
+            <TableCell className="py-3 text-xs font-bold uppercase tracking-wider">
+              Total
+            </TableCell>
+            <SubtotalCell value={totals.proposals} strong />
+            <SubtotalCell value={totals.approved} strong />
+            <SubtotalCell value={totals.prs} strong />
+            <SubtotalCell value={totals.merged} strong />
+          </TableRow>
         </TableBody>
       </Table>
     </div>
@@ -273,6 +388,21 @@ function NumCell({
       >
         {value}
       </button>
+    </TableCell>
+  )
+}
+
+function SubtotalCell({ value, strong }: { value: number; strong?: boolean }) {
+  return (
+    <TableCell className="text-right">
+      <span
+        className={cn(
+          "font-mono",
+          strong ? "text-sm font-bold" : "text-xs font-semibold",
+        )}
+      >
+        {value}
+      </span>
     </TableCell>
   )
 }

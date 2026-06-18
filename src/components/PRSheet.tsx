@@ -110,6 +110,38 @@ function Body({ pr }: { pr: PR }) {
             )}
           </div>
         )}
+        {pr.fixes && pr.fixes.length > 0 && (
+          <div className="pt-1 text-xs text-muted-foreground">
+            <span className="font-medium text-foreground">
+              {pr.fixes.length === 1 ? "Task fix" : `${pr.fixes.length} task fixes`}:
+            </span>{" "}
+            {pr.fixes.map((f, i) => (
+              <span key={f.number}>
+                {i > 0 && ", "}
+                <a
+                  href={f.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="font-medium text-foreground underline underline-offset-2 hover:text-[#038F99]"
+                  title={`${f.title} (${f.state})`}
+                >
+                  #{f.number}
+                </a>
+                <span
+                  className={
+                    f.state === "merged"
+                      ? "ml-1 text-[10px] uppercase text-green-700 dark:text-green-400"
+                      : f.state === "open"
+                        ? "ml-1 text-[10px] uppercase text-amber-700 dark:text-amber-400"
+                        : "ml-1 text-[10px] uppercase text-muted-foreground"
+                  }
+                >
+                  {f.state}
+                </span>
+              </span>
+            ))}
+          </div>
+        )}
         <SheetDescription className="flex flex-wrap items-center gap-x-3 gap-y-1 pt-2">
           <span className="inline-flex items-center gap-1.5">
             <UserCell user={pr.author} />

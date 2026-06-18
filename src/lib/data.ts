@@ -73,6 +73,16 @@ export type PR = {
   merged_at: string | null
   closed_at: string | null
   labels: string[]
+  fixes: Array<{
+    number: number
+    title: string
+    url: string
+    state: PRState
+    merged_at: string | null
+    closed_at: string | null
+    created_at: string
+    author: User
+  }>
 }
 
 export type ProposalState = "open" | "closed"

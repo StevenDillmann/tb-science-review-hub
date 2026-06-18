@@ -290,15 +290,28 @@ export function PRsTable({
             TITLE <ArrowUpDown className="h-3 w-3" />
           </button>
         ),
-        cell: ({ row }) => (
-          <button
-            type="button"
-            onClick={() => setActive(row.original)}
-            className="text-left font-medium hover:underline underline-offset-4"
-          >
-            {row.original.title}
-          </button>
-        ),
+        cell: ({ row }) => {
+          const fixCount = row.original.fixes?.length ?? 0
+          return (
+            <span className="inline-flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setActive(row.original)}
+                className="text-left font-medium hover:underline underline-offset-4"
+              >
+                {row.original.title}
+              </button>
+              {fixCount > 0 && (
+                <span
+                  className="rounded-sm bg-amber-100 px-1.5 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-wider text-amber-800 dark:bg-amber-900/40 dark:text-amber-300"
+                  title={`${fixCount} task fix PR${fixCount === 1 ? "" : "es"} — open the side panel for details`}
+                >
+                  +{fixCount} fix{fixCount === 1 ? "" : "es"}
+                </span>
+              )}
+            </span>
+          )
+        },
       },
       {
         accessorKey: "subfield",
