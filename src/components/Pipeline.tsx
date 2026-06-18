@@ -1,9 +1,9 @@
 import {
-  CheckCircle2,
+  Award,
   ChevronRight,
+  Crown,
   GitPullRequest,
   Send,
-  ShieldCheck,
 } from "lucide-react"
 
 const FORM_URL = "https://airtable.com/appzZC5gEHrXSfNNw/pagjgS95lAQ5FVJxt/form"
@@ -56,14 +56,14 @@ export function Pipeline() {
           />
           <Connector label="review, iteration & merge" />
           <Step
-            icon={CheckCircle2}
+            icon={Award}
             label="Contributor status"
             detail="Earn authorship credit"
             href={CONTRIBUTORS_URL}
           />
           <Connector label="invite-only" />
           <Step
-            icon={ShieldCheck}
+            icon={Crown}
             label="Reviewer & maintainer status"
             detail="Extra authorship credit & area chair candidacy"
             href={REVIEWER_POOL_URL}
