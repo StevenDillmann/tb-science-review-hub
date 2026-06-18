@@ -24,8 +24,11 @@ export function Pipeline() {
       </div>
       <p className="mb-3 font-prose text-sm leading-relaxed text-foreground">
         We're looking for tasks that are scientifically grounded, objectively
-        verifiable, and beyond frontier AI agent capabilities. For more details,
-        see the{" "}
+        verifiable, and beyond frontier AI agent capabilities. Contributors
+        whose tasks land in the benchmark earn authorship credit, and top
+        contributors are invited into the reviewer pool — a senior role with
+        elevated authorship credit and area-chair candidacy for a scientific
+        domain. For more details, see the{" "}
         <a
           href="https://www.tbench.ai/news/tb-science-announcement"
           target="_blank"
