@@ -9,7 +9,7 @@ const DOMAIN_TEXT: Record<Domain, string> = {
   "life-sciences": "text-green-600 dark:text-green-400",
   "physical-sciences": "text-red-600 dark:text-red-400",
   "mathematical-sciences": "text-amber-600 dark:text-amber-400",
-  "other": "text-zinc-500",
+  "other-sciences": "text-zinc-500",
 }
 import { useTaxonomy } from "@/lib/taxonomy"
 import {
@@ -26,7 +26,7 @@ const KNOWN_ORDER: Domain[] = [
   "life-sciences",
   "physical-sciences",
   "mathematical-sciences",
-  "other",
+  "other-sciences",
 ]
 
 export type PickKind =
@@ -90,7 +90,7 @@ export function StatsView({
     const uncatPRs = prs.filter((p) => !p.subfield)
     if (uncatProps.length > 0 || uncatPRs.length > 0) {
       out.push({
-        domain: "other",
+        domain: "other-sciences",
         fieldSlug: "__unknown",
         fieldLabel: "(uncategorized)",
         proposals: uncatProps.length,
