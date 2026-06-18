@@ -113,7 +113,7 @@ function Body({ pr }: { pr: PR }) {
         {pr.fixes && pr.fixes.length > 0 && (
           <div className="pt-1 text-xs text-muted-foreground">
             <span className="font-medium text-foreground">
-              {pr.fixes.length === 1 ? "Task fix" : `${pr.fixes.length} task fixes`}:
+              Task fixes:
             </span>{" "}
             {pr.fixes.map((f, i) => (
               <span key={f.number}>
@@ -122,20 +122,12 @@ function Body({ pr }: { pr: PR }) {
                   href={f.url}
                   target="_blank"
                   rel="noreferrer"
-                  className="font-medium text-foreground underline underline-offset-2 hover:text-[#038F99]"
+                  className="font-mono text-[11px] font-semibold uppercase tracking-wider text-blue-700 hover:underline underline-offset-2 dark:text-blue-400"
                   title={`${f.title} (${f.state})`}
                 >
-                  #{f.number}
+                  fix #{f.number}
                 </a>
-                <span
-                  className={
-                    f.state === "merged"
-                      ? "ml-1 text-[10px] uppercase text-green-700 dark:text-green-400"
-                      : f.state === "open"
-                        ? "ml-1 text-[10px] uppercase text-amber-700 dark:text-amber-400"
-                        : "ml-1 text-[10px] uppercase text-muted-foreground"
-                  }
-                >
+                <span className="ml-1 text-[10px] uppercase text-foreground">
                   {f.state}
                 </span>
               </span>

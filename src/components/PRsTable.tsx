@@ -291,9 +291,9 @@ export function PRsTable({
           </button>
         ),
         cell: ({ row }) => {
-          const fixCount = row.original.fixes?.length ?? 0
+          const fixes = row.original.fixes ?? []
           return (
-            <span className="inline-flex items-center gap-2">
+            <div className="flex flex-col gap-1">
               <button
                 type="button"
                 onClick={() => setActive(row.original)}
@@ -301,15 +301,22 @@ export function PRsTable({
               >
                 {row.original.title}
               </button>
-              {fixCount > 0 && (
-                <span
-                  className="rounded-sm bg-amber-100 px-1.5 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-wider text-amber-800 dark:bg-amber-900/40 dark:text-amber-300"
-                  title={`${fixCount} task fix PR${fixCount === 1 ? "" : "es"} — open the side panel for details`}
-                >
-                  +{fixCount} fix{fixCount === 1 ? "" : "es"}
-                </span>
+              {fixes.length > 0 && (
+                <div className="flex flex-col gap-0.5">
+                  {fixes.map((f) => (
+                    <button
+                      key={f.number}
+                      type="button"
+                      onClick={() => setActive(row.original)}
+                      className="self-start font-mono text-[10px] font-semibold uppercase tracking-wider text-blue-700 hover:underline underline-offset-2 dark:text-blue-400"
+                      title={`#${f.number} (${f.state}) — ${f.title}`}
+                    >
+                      fix #{f.number}
+                    </button>
+                  ))}
+                </div>
               )}
-            </span>
+            </div>
           )
         },
       },
