@@ -153,10 +153,17 @@ export function TypeText({
 
 export function BallChip({
   ball,
+  stage,
+  state,
   onClick,
   active,
 }: {
   ball: "reviewer" | "author" | null
+  /** If the PR has all 3 passes and is still open, surface that the only
+   *  thing left is the merge. Stage and state are optional — pass them to
+   *  enable the "ready" affordance. */
+  stage?: "1st" | "2nd" | "3rd" | "none"
+  state?: "open" | "merged" | "closed"
   onClick?: () => void
   active?: boolean
 }) {
@@ -179,6 +186,16 @@ export function BallChip({
           author
         </span>
       </Clickable>
+    )
+  }
+  if (ball === null && stage === "3rd" && state === "open") {
+    return (
+      <span
+        className="text-xs font-medium text-green-700 dark:text-green-400"
+        title="All 3 reviews complete — awaiting maintainer merge"
+      >
+        completed
+      </span>
     )
   }
   return <span className="text-xs text-muted-foreground">—</span>

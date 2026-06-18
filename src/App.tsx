@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { AlertCircle, Globe, Loader2, Mail } from "lucide-react"
 
 import logoLight from "@/assets/tb-science-logo-light.png"
@@ -45,6 +45,13 @@ export default function App() {
     "open" | "merged" | "closed" | null
   >(null)
   const { resolved } = useTheme()
+
+  // Drafts are excluded everywhere — they aren't part of the contribution
+  // funnel until they get marked ready for review.
+  const visiblePRs = useMemo(
+    () => (data ? data.prs.filter((p) => !p.is_draft) : []),
+    [data],
+  )
 
   useEffect(() => {
     loadData()
@@ -170,7 +177,7 @@ export default function App() {
                 <TabsTrigger value="prs">
                   Task Pull Requests
                   <Badge variant="secondary" className="ml-2">
-                    {data.prs.length}
+                    {visiblePRs.length}
                   </Badge>
                 </TabsTrigger>
                 <TabsTrigger value="stats">Statistics</TabsTrigger>
@@ -191,7 +198,7 @@ export default function App() {
               </TabsContent>
               <TabsContent value="prs" className="mt-6">
                 <PRsTable
-                  prs={data.prs}
+                  prs={visiblePRs}
                   externalField={tab === "prs" ? forcedField : null}
                   externalState={tab === "prs" ? forcedPRState : null}
                   onExternalFieldConsumed={() => {
@@ -203,7 +210,7 @@ export default function App() {
               <TabsContent value="stats" className="mt-6">
                 <StatsView
                   proposals={data.proposals}
-                  prs={data.prs}
+                  prs={visiblePRs}
                   onPickField={(pick) => {
                     setForcedField(pick.field)
                     if (pick.kind === "proposals") {

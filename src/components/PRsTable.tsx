@@ -385,7 +385,13 @@ export function PRsTable({
             options={BALL_OPTIONS}
           />
         ),
-        cell: ({ row }) => <BallChip ball={row.original.ball_in_court} />,
+        cell: ({ row }) => (
+          <BallChip
+            ball={row.original.ball_in_court}
+            stage={row.original.review_stage}
+            state={row.original.state}
+          />
+        ),
       },
       {
         accessorKey: "ci",
