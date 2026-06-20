@@ -18,7 +18,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { DOMAIN_LABELS, type Domain, type Proposal, type ProposalState } from "@/lib/data"
+import { DOMAIN_LABELS, type Domain, type Proposal } from "@/lib/data"
 import { useTaxonomy } from "@/lib/taxonomy"
 import { cn } from "@/lib/utils"
 import { FieldChip, HumanReviewChip, LLMReviewChip, UserCell } from "./Chips"
@@ -87,21 +87,29 @@ const HUMAN_OPTIONS = [
   },
 ]
 
-/** Pill toggle: All / Open / Approved / Closed for proposals. */
+/** Pill toggle: All / Open / Approved / Closed for proposals.
+ *
+ * Mirrors the PR Open/Merged/Closed pill — "approved" is the positive
+ * terminal state (analogous to "merged" on PRs). It is derived in the
+ * UI from `state === "closed" && status === "approved"`; the data
+ * model keeps `state` ("open" | "closed") and `status` separate. */
+type ProposalStateFilter = "open" | "approved" | "closed"
+
 function StateToggle({
   value,
   onChange,
   counts,
   total,
 }: {
-  value: ProposalState | "all"
-  onChange: (v: ProposalState | "all") => void
-  counts: Record<ProposalState, number>
+  value: ProposalStateFilter | "all"
+  onChange: (v: ProposalStateFilter | "all") => void
+  counts: Record<ProposalStateFilter, number>
   total: number
 }) {
-  const items: { value: ProposalState | "all"; label: string; count: number }[] = [
+  const items: { value: ProposalStateFilter | "all"; label: string; count: number }[] = [
     { value: "all", label: "All", count: total },
     { value: "open", label: "Open", count: counts.open ?? 0 },
+    { value: "approved", label: "Approved", count: counts.approved ?? 0 },
     { value: "closed", label: "Closed", count: counts.closed ?? 0 },
   ]
   return (
@@ -177,16 +185,25 @@ export function ProposalsTable({
     { id: "proposal_number", desc: true },
   ])
   const [search, setSearch] = useState("")
-  const [state, setState] = useState<ProposalState | "all">("all")
+  const [state, setState] = useState<ProposalStateFilter | "all">("all")
   const [active, setActive] = useState<Proposal | null>(null)
   const [field, setField] = useState<string | null>(null)
   const [author, setAuthor] = useState<string | null>(null)
   const [llm, setLlm] = useState<string | null>(null)
   const [human, setHuman] = useState<string | null>(null)
 
+  // Derive the 3-way bucket (open / approved / closed) from the
+  // underlying `state` + `status` fields. "Approved" peels off
+  // GH-closed proposals that the maintainers approved; everything
+  // else closed (declined, abandoned, no decision) stays in "closed".
+  const bucketOf = (p: Proposal): ProposalStateFilter => {
+    if (p.state === "open") return "open"
+    return p.status === "approved" ? "approved" : "closed"
+  }
+
   const stateCounts = useMemo(() => {
-    const c: Record<ProposalState, number> = { open: 0, closed: 0 }
-    for (const p of proposals) c[p.state] = (c[p.state] ?? 0) + 1
+    const c: Record<ProposalStateFilter, number> = { open: 0, approved: 0, closed: 0 }
+    for (const p of proposals) c[bucketOf(p)] += 1
     return c
   }, [proposals])
 
@@ -204,7 +221,7 @@ export function ProposalsTable({
   const filtered = useMemo(() => {
     const needle = search.toLowerCase().trim()
     return proposals.filter((p) => {
-      if (state !== "all" && p.state !== state) return false
+      if (state !== "all" && bucketOf(p) !== state) return false
       if (field) {
         if (field.startsWith("__domain:")) {
           if (p.domain !== field.slice("__domain:".length)) return false
