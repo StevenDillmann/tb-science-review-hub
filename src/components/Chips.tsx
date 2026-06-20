@@ -382,10 +382,12 @@ export function RubricChip({
     return <span className="text-xs text-muted-foreground">—</span>
   }
   const { passed, failed, total, url } = rubric
+  // Binary green/red: any failed criterion turns the chip red. The rubric
+  // is pass/fail by design — there's no middle ground worth amber.
   const clean = failed === 0
   const text = clean
     ? "text-green-700 dark:text-green-400"
-    : "text-amber-700 dark:text-amber-400"
+    : "text-red-700 dark:text-red-400"
   const inner = (
     <span className={cn("text-xs font-medium", text)}>
       {passed}/{total}
