@@ -3,6 +3,17 @@ export type User = {
   avatar_url: string | null
 }
 
+export type ReviewState = "approved" | "changes_requested" | "pending"
+
+/** Reviewer slot/role from the upstream hidden marker; null when the PR has no
+ *  marker (most pre-parallel-model PRs). */
+export type ReviewerRole = "domain" | "general" | "final" | null
+
+export type Reviewer = User & {
+  status: ReviewState
+  role: ReviewerRole
+}
+
 export type Domain =
   | "earth-sciences"
   | "life-sciences"
@@ -24,7 +35,14 @@ export type PR = {
   field: string | null
   review_stage: "1st" | "2nd" | "3rd" | "none"
   ball_in_court: "reviewer" | "author" | null
+  /** First active reviewer (back-compat); prefer `reviewers` for display. */
   dri: User | null
+  /** Assigned reviewers (back-compat); prefer `reviewers` for display. */
+  dris: User[]
+  /** Every first-party reviewer with their real review status + slot role.
+   *  Approved reviewers that GitHub dropped from the request list are included
+   *  here (unlike `dris`), so this is the source of truth for the column. */
+  reviewers: Reviewer[]
   age_days: number
   updated_days: number
   merged_days: number | null

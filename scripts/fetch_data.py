@@ -31,11 +31,19 @@ DOMAIN_LABEL_SET = {
     "mathematical-sciences",
 }
 
-REVIEW_STAGE_LABELS = {
-    "3rd review ✅": "3rd",
-    "2nd review ✅": "2nd",
-    "1st review ✅": "1st",
-}
+# Parallel review model: a "domain" reviewer and a "general" reviewer review
+# concurrently, then a "final" reviewer signs off after both approve. The
+# review_stage values are kept as opaque count-keys for the UI (which renders a
+# row of filled dots): "1st"/"2nd" mean 1/2 of the two parallel approvals so
+# far, and "3rd" means the final reviewer has approved.
+PARALLEL_APPROVAL_LABELS = ("domain review ✅", "general review ✅")
+FINAL_APPROVAL_LABEL = "final review ✅"
+
+# Only first-party reviews count as "reviewers" in the dashboard. Bot and
+# drive-by reviews (Devin, Copilot, external commenters) come in as NONE or
+# CONTRIBUTOR and are excluded — mirroring the upstream checks-passed.yml filter
+# that drives reviewer assignment.
+REVIEWER_ASSOCIATIONS = {"COLLABORATOR", "MEMBER", "OWNER"}
 
 TASK_PROPOSAL_CATEGORY = "Task Proposals"
 
@@ -143,10 +151,12 @@ def parse_proposal_number(title: str) -> tuple[int | None, str]:
 
 
 def derive_review_stage(labels: list[str]) -> str:
-    for lab, stage in REVIEW_STAGE_LABELS.items():
-        if lab in labels:
-            return stage
-    return "none"
+    # Final reviewer approved → fully reviewed (all dots filled).
+    if FINAL_APPROVAL_LABEL in labels:
+        return "3rd"
+    # Otherwise count how many of the two parallel reviewers have approved.
+    approvals = sum(1 for lab in PARALLEL_APPROVAL_LABELS if lab in labels)
+    return {2: "2nd", 1: "1st"}.get(approvals, "none")
 
 
 def derive_ball_in_court(labels: list[str]) -> str | None:
@@ -170,6 +180,127 @@ def derive_status(labels: list[str]) -> str:
     if "proposal-declined" in labels:
         return "rejected"
     return "pending"
+
+
+# Order reviewers as a progress checklist: done first, then who's left, then
+# who blocked. Lower sort key sorts earlier.
+_REVIEW_STATUS_ORDER = {"approved": 0, "pending": 1, "changes_requested": 2}
+
+# Hidden marker comment that records the slot→handle mapping for the parallel
+# review model, e.g.
+#   <!-- reviewer-slots: {"domain": "alice", "general": "bob", "final": ""} -->
+# Written by the upstream slot_marker.py. Absent on PRs predating that model.
+REVIEWER_SLOTS_RE = re.compile(r"<!--\s*reviewer-slots:\s*(\{.*?\})\s*-->", re.DOTALL)
+
+
+def parse_reviewer_slots(comments: list[dict[str, Any]]) -> dict[str, str]:
+    """Return {login: role} from the latest reviewer-slots marker comment.
+
+    role ∈ {"domain", "general", "final"}. Empty/missing slots are skipped.
+    Returns {} when no marker is present (most pre-parallel-model PRs).
+    """
+    for c in reversed(comments):  # most recent marker wins
+        m = REVIEWER_SLOTS_RE.search(c.get("body", "") or "")
+        if not m:
+            continue
+        try:
+            slots = json.loads(m.group(1))
+        except json.JSONDecodeError:
+            continue
+        out: dict[str, str] = {}
+        for role in ("domain", "general", "final"):
+            handle = (slots.get(role) or "").strip()
+            if handle:
+                out[handle] = role
+        return out
+    return {}
+
+
+def build_reviewers(
+    node: dict[str, Any], roles: dict[str, str] | None = None
+) -> list[dict[str, Any]]:
+    """Per-reviewer status for a PR: approved / changes_requested / pending.
+
+    GitHub drops a reviewer from `reviewRequests` once they submit an approval,
+    so request/assignee state alone misreports who approved (the approvers fall
+    off and the still-assigned final reviewer looks like the approver). We
+    instead read the actual `reviews`, collapse to each author's *latest*
+    terminal state, then fold in anyone still requested/assigned as `pending`.
+
+    Only COLLABORATOR/MEMBER/OWNER reviews count (see REVIEWER_ASSOCIATIONS);
+    bot and drive-by reviews are ignored. A pending re-request overrides a stale
+    prior review state — GitHub re-requested them, so the ball is back in their
+    court.
+    """
+    # 1. Latest *terminal* review state per first-party author (last wins).
+    #    Only APPROVED / CHANGES_REQUESTED count — a COMMENTED/PENDING review
+    #    does NOT make someone a reviewer (e.g. a maintainer who just left a
+    #    comment). Such people are only included if they're also a requested
+    #    reviewer or assignee (steps 2/3). Avatars are still cached from any
+    #    review so we can render them if they do qualify.
+    status: dict[str, str] = {}
+    avatars: dict[str, str | None] = {}
+    order: list[str] = []
+    for r in node.get("reviews", {}).get("nodes", []) or []:
+        if r.get("authorAssociation") not in REVIEWER_ASSOCIATIONS:
+            continue
+        author = r.get("author") or {}
+        login = author.get("login")
+        if not login:
+            continue
+        avatars[login] = author.get("avatarUrl") or avatars.get(login)
+        state = r.get("state")
+        if state not in ("APPROVED", "CHANGES_REQUESTED"):
+            continue  # comment-only / pending — not a reviewer on its own
+        if login not in status:
+            order.append(login)
+        status[login] = "approved" if state == "APPROVED" else "changes_requested"
+
+    # 2. Anyone still requested → pending (overrides a stale prior review).
+    for rr in node.get("reviewRequests", {}).get("nodes", []) or []:
+        r = rr.get("requestedReviewer") or {}
+        login = r.get("login")
+        if not login:
+            continue
+        if login not in status:
+            order.append(login)
+        avatars[login] = r.get("avatarUrl") or avatars.get(login)
+        status[login] = "pending"
+
+    # 3. Assignees with no terminal review yet → pending (the assigned slot
+    #    reviewer who hasn't acted). Don't downgrade an existing approval/changes.
+    for a in node.get("assignees", {}).get("nodes", []) or []:
+        login = a.get("login")
+        if not login:
+            continue
+        if login not in status:
+            order.append(login)
+        avatars.setdefault(login, a.get("avatarUrl"))
+        status.setdefault(login, "pending")
+
+    # Role comes from the hidden slot marker (domain/general/final) where the
+    # PR has one; None otherwise. The final reviewer is the gate, so within a
+    # status group we surface domain/general before final, unknown roles last.
+    roles = roles or {}
+    _role_order = {"domain": 0, "general": 1, "final": 2}
+
+    out = [
+        {
+            "login": login,
+            "avatar_url": avatars.get(login),
+            "status": status.get(login, "pending"),
+            "role": roles.get(login),
+        }
+        for login in order
+    ]
+    out.sort(
+        key=lambda u: (
+            _REVIEW_STATUS_ORDER.get(u["status"], 3),
+            _role_order.get(u["role"], 3),
+            u["login"].lower(),
+        )
+    )
+    return out
 
 
 # --- Taxonomy discovery -----------------------------------------------------
@@ -353,6 +484,16 @@ query($owner:String!,$name:String!,$cursor:String){
             requestedReviewer{
               ... on User { login avatarUrl }
             }
+          }
+        }
+        assignees(first:10){
+          nodes{ login avatarUrl }
+        }
+        reviews(last:50){
+          nodes{
+            author{ login ... on User { avatarUrl } }
+            state
+            authorAssociation
           }
         }
         files(first:100){
@@ -826,12 +967,25 @@ def build_prs(
                 n["title"], field_to_domain
             )
 
-        dri = None
+        # In the parallel review model a PR has multiple reviewers at once
+        # (a domain reviewer + a general reviewer, then a final reviewer).
+        # Collect everyone with an active review request; fall back to the
+        # assignees when GitHub has dropped the request after a submitted
+        # review. De-duped, order preserved. `dri` keeps the first for any
+        # single-reviewer consumers; `dris` is the full list for display.
+        dris = []
+        seen = set()
         for rr in n["reviewRequests"]["nodes"]:
             r = rr.get("requestedReviewer")
-            if r and r.get("login"):
-                dri = {"login": r["login"], "avatar_url": r.get("avatarUrl")}
-                break
+            if r and r.get("login") and r["login"] not in seen:
+                seen.add(r["login"])
+                dris.append({"login": r["login"], "avatar_url": r.get("avatarUrl")})
+        if not dris:
+            for a in n.get("assignees", {}).get("nodes", []):
+                if a.get("login") and a["login"] not in seen:
+                    seen.add(a["login"])
+                    dris.append({"login": a["login"], "avatar_url": a.get("avatarUrl")})
+        dri = dris[0] if dris else None
         ci = None
         commits = n["commits"]["nodes"]
         if commits and commits[0]["commit"]["statusCheckRollup"]:
@@ -839,6 +993,10 @@ def build_prs(
         author = n.get("author") or {}
         state = (n.get("state") or "OPEN").lower()  # "open" | "closed" | "merged"
         comments = n.get("comments", {}).get("nodes", []) or []
+        # Per-reviewer status (approved / pending / changes), with role pulled
+        # from the hidden reviewer-slots marker where the PR has one.
+        reviewer_roles = parse_reviewer_slots(comments)
+        reviewers = build_reviewers(n, reviewer_roles)
         trials = parse_trial_results(comments)
         rubric = parse_rubric_review(comments)
         cheat = parse_cheat_results(comments)
@@ -871,6 +1029,8 @@ def build_prs(
             "review_stage": derive_review_stage(labels),
             "ball_in_court": derive_ball_in_court(labels) if state == "open" else None,
             "dri": dri if state == "open" else None,
+            "dris": dris if state == "open" else [],
+            "reviewers": reviewers if state == "open" else [],
             "age_days": age_days(n["createdAt"], now),
             "updated_days": age_days(n["updatedAt"], now),
             "merged_days": age_days(n["mergedAt"], now) if n.get("mergedAt") else None,

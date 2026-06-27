@@ -13,6 +13,7 @@ import {
   BookOpen,
   Check,
   CheckCircle2,
+  ChevronRight,
   CircleDashed,
   ExternalLink,
   XCircle,
@@ -39,39 +40,49 @@ import {
   StageChip,
   TrialsChip,
   UserCell,
+  ReviewersCell,
 } from "./Chips"
 import { ColumnFilter } from "./ColumnFilter"
 import { FieldColumnFilter } from "./FieldColumnFilter"
 import { FilterChip, SearchInput } from "./Filters"
 import { PRSheet } from "./PRSheet"
 
+// Mirrors StageChip's layout for the filter row: two parallel slots, a gate
+// chevron, then the final slot (which stays dimmed until both parallel fill).
 function StageMini({ filled }: { filled: 0 | 1 | 2 | 3 }) {
+  const parallelFilled = Math.min(filled, 2)
+  const finalReached = filled >= 2
+  const finalDone = filled >= 3
+  const dot = (on: boolean, dim = false) =>
+    on ? (
+      <Check className="h-3 w-3 text-green-700 dark:text-green-400" strokeWidth={3} />
+    ) : (
+      <CircleDashed
+        className={cn("h-3 w-3", dim ? "text-muted-foreground/50" : "text-muted-foreground")}
+        strokeWidth={2}
+      />
+    )
   return (
     <span className="inline-flex items-center gap-0.5">
-      {[0, 1, 2].map((i) =>
-        i < filled ? (
-          <Check
-            key={i}
-            className="h-3 w-3 text-green-700 dark:text-green-400"
-            strokeWidth={3}
-          />
-        ) : (
-          <CircleDashed
-            key={i}
-            className="h-3 w-3 text-muted-foreground"
-            strokeWidth={2}
-          />
-        ),
-      )}
+      {dot(parallelFilled > 0)}
+      {dot(parallelFilled > 1)}
+      <ChevronRight
+        className={cn(
+          "h-3 w-3 shrink-0",
+          finalReached ? "text-muted-foreground" : "text-muted-foreground/40",
+        )}
+        strokeWidth={2}
+      />
+      {dot(finalDone, !finalReached)}
     </span>
   )
 }
 
 const STAGE_OPTIONS = [
   { value: "none", label: "queued", render: <StageMini filled={0} /> },
-  { value: "1st", label: "1st pass", render: <StageMini filled={1} /> },
-  { value: "2nd", label: "2nd pass", render: <StageMini filled={2} /> },
-  { value: "3rd", label: "3rd pass", render: <StageMini filled={3} /> },
+  { value: "1st", label: "1 approval", render: <StageMini filled={1} /> },
+  { value: "2nd", label: "both approved", render: <StageMini filled={2} /> },
+  { value: "3rd", label: "final approved", render: <StageMini filled={3} /> },
 ]
 
 const BALL_OPTIONS = [
@@ -221,11 +232,11 @@ export function PRsTable({
       if (stage && p.review_stage !== stage) return false
       if (ball && p.ball_in_court !== ball) return false
       if (author && p.author.login !== author) return false
-      if (dri && p.dri?.login !== dri) return false
+      if (dri && !p.reviewers.some((d) => d.login === dri)) return false
       if (ci && (p.ci ?? "") !== ci) return false
       if (needle) {
         const hay =
-          `${p.title} ${p.author.login} ${p.dri?.login ?? ""} ${p.field ?? ""}`.toLowerCase()
+          `${p.title} ${p.author.login} ${p.reviewers.map((d) => d.login).join(" ")} ${p.field ?? ""}`.toLowerCase()
         if (!hay.includes(needle)) return false
       }
       return true
@@ -255,7 +266,11 @@ export function PRsTable({
       .map(([value, count]) => ({ value, label: value, count }))
   }, [stateFiltered])
   const driOptions = useMemo(() => {
-    const c = countBy(stateFiltered, (p) => p.dri?.login ?? null)
+    // Count over every reviewer on each PR, not just the first.
+    const c: Record<string, number> = {}
+    for (const p of stateFiltered) {
+      for (const d of p.reviewers) c[d.login] = (c[d.login] ?? 0) + 1
+    }
     return Object.entries(c)
       .sort((a, b) => b[1] - a[1])
       .map(([value, count]) => ({ value, label: value, count }))
@@ -354,7 +369,13 @@ export function PRsTable({
             options={driOptions}
           />
         ),
-        cell: ({ row }) => <UserCell user={row.original.dri} />,
+        cell: ({ row }) => (
+          <ReviewersCell
+            reviewers={row.original.reviewers}
+            onClick={(login) => setDri(dri === login ? null : login)}
+            activeLogin={dri}
+          />
+        ),
       },
       {
         accessorKey: "review_stage",

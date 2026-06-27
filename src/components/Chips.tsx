@@ -1,6 +1,7 @@
 import {
   Check,
   CheckCircle2,
+  ChevronRight,
   Circle,
   CircleDashed,
   Clock,
@@ -13,7 +14,14 @@ import type { ComponentType, MouseEventHandler, ReactNode } from "react"
 
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
-import { DOMAIN_COLORS, DOMAIN_LABELS, type Domain } from "@/lib/data"
+import {
+  DOMAIN_COLORS,
+  DOMAIN_LABELS,
+  type Domain,
+  type Reviewer,
+  type ReviewerRole,
+  type ReviewState,
+} from "@/lib/data"
 import { useTaxonomy } from "@/lib/taxonomy"
 
 /** Lucide doesn't ship a plain `?` icon (only CircleHelp), so render one
@@ -159,9 +167,9 @@ export function BallChip({
   active,
 }: {
   ball: "reviewer" | "author" | null
-  /** If the PR has all 3 passes and is still open, surface that the only
-   *  thing left is the merge. Stage and state are optional — pass them to
-   *  enable the "ready" affordance. */
+  /** If the PR has all reviews complete (final approved) and is still open,
+   *  surface that the only thing left is the merge. Stage and state are
+   *  optional — pass them to enable the "ready" affordance. */
   stage?: "1st" | "2nd" | "3rd" | "none"
   state?: "open" | "merged" | "closed"
   onClick?: () => void
@@ -192,7 +200,7 @@ export function BallChip({
     return (
       <span
         className="text-xs font-medium text-green-700 dark:text-green-400"
-        title="All 3 reviews complete — awaiting maintainer merge"
+        title="All reviews complete — awaiting maintainer merge"
       >
         completed
       </span>
@@ -217,63 +225,96 @@ export function StageChip({
   active?: boolean
 }) {
   const filled = stage === "1st" ? 1 : stage === "2nd" ? 2 : stage === "3rd" ? 3 : 0
+  // Two reviewers (domain + general) review in parallel; a final reviewer signs
+  // off after both. The dots count approvals so far, not an ordered sequence.
   const baseLabels = [
-    "No passes yet",
-    "1st pass approved",
-    "2nd pass approved",
-    "All 3 passes approved",
+    "No approvals yet",
+    "1 of 2 parallel reviewers approved",
+    "Both parallel reviewers approved",
+    "Final reviewer approved",
   ]
   let title = baseLabels[filled]
   if (filled < 3 && action === "author") {
-    title = `${baseLabels[filled]} · changes requested on pass ${filled + 1}`
+    title = `${baseLabels[filled]} · changes requested`
   } else if (filled < 3 && action === "reviewer") {
-    title = `${baseLabels[filled]} · pass ${filled + 1} pending review`
+    title = `${baseLabels[filled]} · pending review`
   }
+  // The two parallel slots (domain + general) are in-flight together until both
+  // approve; the final slot is *gated* — it can't begin until both parallel
+  // ones fill. `filled` is the count of green slots: 0/1 fills the parallel
+  // pair, 2 means both parallel done (final now in-flight), 3 means final done.
+  const parallelFilled = Math.min(filled, 2)
+  const finalReached = filled >= 2 // both parallel approved → final slot active
+  const finalDone = filled >= 3
+
+  // A parallel slot is "in-flight" (shows the action glyph) when it's the next
+  // unfilled parallel dot and we haven't reached the final gate yet.
+  const parallelSlot = (i: number): ReactNode => {
+    if (i < parallelFilled) {
+      return (
+        <Check
+          className="h-3.5 w-3.5 text-green-700 dark:text-green-400"
+          strokeWidth={3}
+        />
+      )
+    }
+    // Next-up parallel slot reflects whose court the in-flight pass is in.
+    if (i === parallelFilled && !finalReached && action === "author") {
+      return (
+        <RotateCw className="h-3 w-3 text-red-700 dark:text-red-400" strokeWidth={2.5} />
+      )
+    }
+    if (i === parallelFilled && !finalReached && action === "reviewer") {
+      return (
+        <Circle className="h-3 w-3 text-amber-600 dark:text-amber-400" strokeWidth={2.5} />
+      )
+    }
+    return <CircleDashed className="h-3 w-3 text-muted-foreground" strokeWidth={2} />
+  }
+
+  const finalSlot = (): ReactNode => {
+    if (finalDone) {
+      return (
+        <Check
+          className="h-3.5 w-3.5 text-green-700 dark:text-green-400"
+          strokeWidth={3}
+        />
+      )
+    }
+    if (finalReached && action === "author") {
+      return (
+        <RotateCw className="h-3 w-3 text-red-700 dark:text-red-400" strokeWidth={2.5} />
+      )
+    }
+    if (finalReached && action === "reviewer") {
+      return (
+        <Circle className="h-3 w-3 text-amber-600 dark:text-amber-400" strokeWidth={2.5} />
+      )
+    }
+    // Not yet reachable — render faintly so it reads as a locked gate.
+    return <CircleDashed className="h-3 w-3 text-muted-foreground/50" strokeWidth={2} />
+  }
+
+  // Fixed-width cells so the Stage column stays aligned regardless of glyph.
+  const cell = (node: ReactNode, key: string) => (
+    <span key={key} className="inline-flex h-4 w-4 items-center justify-center">
+      {node}
+    </span>
+  )
+
   return (
     <Clickable onClick={onClick} active={active} title={title}>
       <span className="inline-flex items-center gap-0.5">
-        {[0, 1, 2].map((i) => {
-          let icon: ReactNode
-          if (i < filled) {
-            icon = (
-              <Check
-                className="h-3.5 w-3.5 text-green-700 dark:text-green-400"
-                strokeWidth={3}
-              />
-            )
-          } else if (i === filled && action === "author") {
-            icon = (
-              <RotateCw
-                className="h-3 w-3 text-red-700 dark:text-red-400"
-                strokeWidth={2.5}
-              />
-            )
-          } else if (i === filled && action === "reviewer") {
-            icon = (
-              <Circle
-                className="h-3 w-3 text-amber-600 dark:text-amber-400"
-                strokeWidth={2.5}
-              />
-            )
-          } else {
-            icon = (
-              <CircleDashed
-                className="h-3 w-3 text-muted-foreground"
-                strokeWidth={2}
-              />
-            )
-          }
-          // Fixed-width slot so the Stage cell stays the same width
-          // regardless of which icon is rendered in each position.
-          return (
-            <span
-              key={i}
-              className="inline-flex h-4 w-4 items-center justify-center"
-            >
-              {icon}
-            </span>
-          )
-        })}
+        {cell(parallelSlot(0), "p0")}
+        {cell(parallelSlot(1), "p1")}
+        <ChevronRight
+          className={cn(
+            "h-3 w-3 shrink-0",
+            finalReached ? "text-muted-foreground" : "text-muted-foreground/40",
+          )}
+          strokeWidth={2}
+        />
+        {cell(finalSlot(), "f")}
       </span>
     </Clickable>
   )
@@ -664,14 +705,51 @@ export function StatusChip({
   )
 }
 
+/** Small trailing glyph for a reviewer's status: ✓ approved / ◌ pending /
+ *  ✗ changes requested. Palette matches the Stage column. */
+function ReviewStatusIcon({ status }: { status: ReviewState }) {
+  if (status === "approved")
+    return (
+      <Check
+        className="h-3.5 w-3.5 shrink-0 text-green-700 dark:text-green-400"
+        strokeWidth={3}
+      />
+    )
+  if (status === "changes_requested")
+    return (
+      <RotateCw
+        className="h-3 w-3 shrink-0 text-red-700 dark:text-red-400"
+        strokeWidth={2.5}
+      />
+    )
+  return (
+    <Circle
+      className="h-3 w-3 shrink-0 text-amber-600 dark:text-amber-400"
+      strokeWidth={2.5}
+    />
+  )
+}
+
+const REVIEW_STATUS_LABEL: Record<ReviewState, string> = {
+  approved: "approved",
+  changes_requested: "changes requested",
+  pending: "pending review",
+}
+
 export function UserCell({
   user,
   onClick,
   active,
+  status,
+  role,
 }: {
   user: { login: string; avatar_url: string | null } | null
   onClick?: () => void
   active?: boolean
+  /** When set, render a trailing status glyph (reviewer rows). */
+  status?: ReviewState
+  /** When set, render a small slot-role tag (domain/general/final). */
+  role?: ReviewerRole
 }) {
   if (!user) return <span className="text-muted-foreground">—</span>
   const inner = (
@@ -687,13 +765,23 @@ export function UserCell({
         <div className="h-5 w-5 shrink-0 rounded-full bg-muted" />
       )}
       <span className="min-w-0 truncate text-sm">{user.login}</span>
+      {role && (
+        <span className="shrink-0 rounded bg-muted px-1 text-[10px] leading-tight font-medium text-muted-foreground uppercase">
+          {role}
+        </span>
+      )}
+      {status && <ReviewStatusIcon status={status} />}
     </span>
   )
+  const titleSuffix = status ? ` · ${REVIEW_STATUS_LABEL[status]}` : ""
   if (onClick) {
     return (
       <button
         type="button"
-        title={active ? "Click to clear filter" : "Click to filter by this user"}
+        title={
+          (active ? "Click to clear filter" : "Click to filter by this user") +
+          titleSuffix
+        }
         onClick={(e) => {
           e.stopPropagation()
           onClick()
@@ -712,9 +800,43 @@ export function UserCell({
       href={`https://github.com/${user.login}`}
       target="_blank"
       rel="noreferrer"
+      title={status ? REVIEW_STATUS_LABEL[status] : undefined}
       className="flex w-full max-w-full min-w-0 items-center pr-2 hover:underline"
     >
       {inner}
     </a>
+  )
+}
+
+/** Renders every reviewer on a PR (domain + general, then final) as a stacked
+ *  list, each with their real review status (✓/◌/✗) and slot role. In the
+ *  parallel review model a PR has multiple reviewers at once, and approvers
+ *  that GitHub dropped from the request list still belong here. */
+export function ReviewersCell({
+  reviewers,
+  onClick,
+  activeLogin,
+}: {
+  reviewers: Reviewer[]
+  /** Optional click handler (e.g. to filter by that reviewer). */
+  onClick?: (login: string) => void
+  /** Login currently used as a filter, for highlight. */
+  activeLogin?: string | null
+}) {
+  if (!reviewers || reviewers.length === 0)
+    return <span className="text-muted-foreground">—</span>
+  return (
+    <span className="flex min-w-0 flex-col gap-0.5">
+      {reviewers.map((u) => (
+        <UserCell
+          key={u.login}
+          user={u}
+          status={u.status}
+          role={u.role}
+          onClick={onClick ? () => onClick(u.login) : undefined}
+          active={activeLogin === u.login}
+        />
+      ))}
+    </span>
   )
 }

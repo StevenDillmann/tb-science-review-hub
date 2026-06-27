@@ -16,6 +16,7 @@ import {
   CIChip,
   FieldChip,
   RubricChip,
+  ReviewersCell,
   StageChip,
   TrialsChip,
   UserCell,
@@ -142,6 +143,11 @@ function Body({ pr }: { pr: PR }) {
           <LabeledChip label="Stage">
             <StageChip stage={pr.review_stage} action={pr.ball_in_court} />
           </LabeledChip>
+          {pr.reviewers.length > 0 && (
+            <LabeledChip label="Reviewers">
+              <ReviewersCell reviewers={pr.reviewers} />
+            </LabeledChip>
+          )}
           <LabeledChip label="CI">
             <CIChip ci={pr.ci} />
           </LabeledChip>

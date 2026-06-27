@@ -38,7 +38,7 @@ function formatGeneratedAt(iso: string): string {
 export default function App() {
   const [data, setData] = useState<Data | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [tab, setTab] = useState<string>("proposals")
+  const [tab, setTab] = useState<string>("prs")
   // When the user clicks a count in Stats, the relevant tab opens and these
   // forced filters get applied by the table (then cleared).
   const [forcedField, setForcedField] = useState<string | null>(null)
