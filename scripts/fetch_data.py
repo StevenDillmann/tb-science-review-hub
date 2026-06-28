@@ -182,10 +182,6 @@ def derive_status(labels: list[str]) -> str:
     return "pending"
 
 
-# Order reviewers as a progress checklist: done first, then who's left, then
-# who blocked. Lower sort key sorts earlier.
-_REVIEW_STATUS_ORDER = {"approved": 0, "pending": 1, "changes_requested": 2}
-
 # Hidden marker comment that records the slot→handle mapping for the parallel
 # review model, e.g.
 #   <!-- reviewer-slots: {"domain": "alice", "general": "bob", "final": ""} -->
@@ -221,26 +217,32 @@ def build_reviewers(
 ) -> list[dict[str, Any]]:
     """Per-reviewer status for a PR: approved / changes_requested / pending.
 
-    GitHub drops a reviewer from `reviewRequests` once they submit an approval,
-    so request/assignee state alone misreports who approved (the approvers fall
-    off and the still-assigned final reviewer looks like the approver). We
-    instead read the actual `reviews`, collapse to each author's *latest*
-    terminal state, then fold in anyone still requested/assigned as `pending`.
+    The reviewer list is the PR's **assignees** — the workflow assigns exactly
+    the people responsible for the PR (the two parallel reviewers up front, then
+    the final reviewer once both approve). This is the stable source of "who is
+    the reviewer": GitHub drops people from `reviewRequests` on approval, and the
+    raw `reviews` list includes drive-by commenters who aren't reviewers. We take
+    the assignees and label each with the status from their own latest *terminal*
+    review (APPROVED / CHANGES_REQUESTED), defaulting to `pending` when they
+    haven't submitted one yet.
 
-    Only COLLABORATOR/MEMBER/OWNER reviews count (see REVIEWER_ASSOCIATIONS);
-    bot and drive-by reviews are ignored. A pending re-request overrides a stale
-    prior review state — GitHub re-requested them, so the ball is back in their
-    court.
+    Only COLLABORATOR/MEMBER/OWNER reviews count (REVIEWER_ASSOCIATIONS); bot and
+    drive-by reviews never affect status.
+
+    Status = whose court the ball is in for this reviewer's slot:
+      - approved           → satisfied (green)
+      - changes_requested  → reviewer wants changes; ball on the AUTHOR (red)
+      - pending            → ball on the REVIEWER (amber)
+
+    A re-request is GitHub's authoritative "ball is back with the reviewer"
+    signal: a reviewer in `reviewRequests` is being awaited again (the author
+    has since responded / re-requested), so their prior review — approval OR
+    changes-request — no longer holds and they show as `pending`.
     """
-    # 1. Latest *terminal* review state per first-party author (last wins).
-    #    Only APPROVED / CHANGES_REQUESTED count — a COMMENTED/PENDING review
-    #    does NOT make someone a reviewer (e.g. a maintainer who just left a
-    #    comment). Such people are only included if they're also a requested
-    #    reviewer or assignee (steps 2/3). Avatars are still cached from any
-    #    review so we can render them if they do qualify.
-    status: dict[str, str] = {}
-    avatars: dict[str, str | None] = {}
-    order: list[str] = []
+    # Latest terminal review state per first-party author (last wins). Used only
+    # to label the assignees below — a review by a non-assignee is ignored.
+    review_status: dict[str, str] = {}
+    review_avatars: dict[str, str | None] = {}
     for r in node.get("reviews", {}).get("nodes", []) or []:
         if r.get("authorAssociation") not in REVIEWER_ASSOCIATIONS:
             continue
@@ -248,39 +250,42 @@ def build_reviewers(
         login = author.get("login")
         if not login:
             continue
-        avatars[login] = author.get("avatarUrl") or avatars.get(login)
+        review_avatars[login] = author.get("avatarUrl") or review_avatars.get(login)
         state = r.get("state")
-        if state not in ("APPROVED", "CHANGES_REQUESTED"):
-            continue  # comment-only / pending — not a reviewer on its own
-        if login not in status:
-            order.append(login)
-        status[login] = "approved" if state == "APPROVED" else "changes_requested"
+        if state == "APPROVED":
+            review_status[login] = "approved"
+        elif state == "CHANGES_REQUESTED":
+            review_status[login] = "changes_requested"
 
-    # 2. Anyone still requested → pending (overrides a stale prior review).
-    for rr in node.get("reviewRequests", {}).get("nodes", []) or []:
-        r = rr.get("requestedReviewer") or {}
-        login = r.get("login")
-        if not login:
-            continue
-        if login not in status:
-            order.append(login)
-        avatars[login] = r.get("avatarUrl") or avatars.get(login)
-        status[login] = "pending"
+    # Currently re-requested reviewers — their prior review is stale; treat as
+    # pending regardless of any earlier terminal review.
+    re_requested = {
+        rr["requestedReviewer"]["login"]
+        for rr in (node.get("reviewRequests", {}).get("nodes", []) or [])
+        if (rr.get("requestedReviewer") or {}).get("login")
+    }
 
-    # 3. Assignees with no terminal review yet → pending (the assigned slot
-    #    reviewer who hasn't acted). Don't downgrade an existing approval/changes.
+    # The reviewers ARE the assignees. Label each with their review status.
+    status: dict[str, str] = {}
+    avatars: dict[str, str | None] = {}
+    order: list[str] = []
     for a in node.get("assignees", {}).get("nodes", []) or []:
         login = a.get("login")
-        if not login:
+        if not login or login in status:
             continue
-        if login not in status:
-            order.append(login)
-        avatars.setdefault(login, a.get("avatarUrl"))
-        status.setdefault(login, "pending")
+        order.append(login)
+        avatars[login] = a.get("avatarUrl") or review_avatars.get(login)
+        # Re-request wins: ball is back with the reviewer regardless of their
+        # prior (now superseded) review. Otherwise use their latest review.
+        if login in re_requested:
+            status[login] = "pending"
+        else:
+            status[login] = review_status.get(login, "pending")
 
     # Role comes from the hidden slot marker (domain/general/final) where the
-    # PR has one; None otherwise. The final reviewer is the gate, so within a
-    # status group we surface domain/general before final, unknown roles last.
+    # PR has one; None otherwise. Always display in slot order:
+    # domain → general → final (then any unknown-role reviewers), so the cell
+    # reads consistently regardless of who approved first.
     roles = roles or {}
     _role_order = {"domain": 0, "general": 1, "final": 2}
 
@@ -295,7 +300,6 @@ def build_reviewers(
     ]
     out.sort(
         key=lambda u: (
-            _REVIEW_STATUS_ORDER.get(u["status"], 3),
             _role_order.get(u["role"], 3),
             u["login"].lower(),
         )

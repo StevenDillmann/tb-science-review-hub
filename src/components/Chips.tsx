@@ -247,8 +247,11 @@ export function StageChip({
   const finalReached = filled >= 2 // both parallel approved → final slot active
   const finalDone = filled >= 3
 
-  // A parallel slot is "in-flight" (shows the action glyph) when it's the next
-  // unfilled parallel dot and we haven't reached the final gate yet.
+  // Each parallel slot (domain + general) is independent: a filled one is a
+  // green check; every *un*filled one reflects whose court the review is in —
+  // both dots go amber when both parallel reviews are pending, both red on
+  // changes requested. (Once the final gate is reached, all parallel dots are
+  // green, so this only applies while finalReached is false.)
   const parallelSlot = (i: number): ReactNode => {
     if (i < parallelFilled) {
       return (
@@ -258,13 +261,12 @@ export function StageChip({
         />
       )
     }
-    // Next-up parallel slot reflects whose court the in-flight pass is in.
-    if (i === parallelFilled && !finalReached && action === "author") {
+    if (action === "author") {
       return (
         <RotateCw className="h-3 w-3 text-red-700 dark:text-red-400" strokeWidth={2.5} />
       )
     }
-    if (i === parallelFilled && !finalReached && action === "reviewer") {
+    if (action === "reviewer") {
       return (
         <Circle className="h-3 w-3 text-amber-600 dark:text-amber-400" strokeWidth={2.5} />
       )
@@ -457,6 +459,14 @@ const MODEL_LABEL: Record<string, string> = {
   gpt: "GPT",
   gemini: "GEMINI",
   other: "OTHER",
+}
+
+// Reviewer slot labels, styled like the trial model labels (CLAUDE / GPT):
+// a leading fixed-width uppercase muted tag so reviewer rows line up.
+const ROLE_LABEL: Record<string, string> = {
+  domain: "DOMAIN",
+  general: "GENERAL",
+  final: "FINAL",
 }
 
 export function TrialsChip({
@@ -742,6 +752,7 @@ export function UserCell({
   active,
   status,
   role,
+  reserveRole,
 }: {
   user: { login: string; avatar_url: string | null } | null
   onClick?: () => void
@@ -750,10 +761,20 @@ export function UserCell({
   status?: ReviewState
   /** When set, render a small slot-role tag (domain/general/final). */
   role?: ReviewerRole
+  /** Reserve the role-label slot even when this row has no role, so siblings
+   *  with roles keep avatars aligned. */
+  reserveRole?: boolean
 }) {
   if (!user) return <span className="text-muted-foreground">—</span>
   const inner = (
     <span className="inline-flex max-w-full min-w-0 items-center gap-2 align-middle">
+      {/* Reserve the fixed-width label slot whenever the cell has roles, so
+          avatars share one left edge even on rows whose own role is blank. */}
+      {(role || reserveRole) && (
+        <span className="w-14 shrink-0 text-left text-[10px] font-medium tracking-wider text-muted-foreground uppercase">
+          {role ? (ROLE_LABEL[role] ?? role) : ""}
+        </span>
+      )}
       {user.avatar_url ? (
         <img
           src={user.avatar_url}
@@ -765,11 +786,6 @@ export function UserCell({
         <div className="h-5 w-5 shrink-0 rounded-full bg-muted" />
       )}
       <span className="min-w-0 truncate text-sm">{user.login}</span>
-      {role && (
-        <span className="shrink-0 rounded bg-muted px-1 text-[10px] leading-tight font-medium text-muted-foreground uppercase">
-          {role}
-        </span>
-      )}
       {status && <ReviewStatusIcon status={status} />}
     </span>
   )
@@ -825,6 +841,9 @@ export function ReviewersCell({
 }) {
   if (!reviewers || reviewers.length === 0)
     return <span className="text-muted-foreground">—</span>
+  // If any reviewer in this cell has a role, reserve the label slot on every
+  // row so avatars/names share one left edge.
+  const anyRole = reviewers.some((u) => u.role)
   return (
     <span className="flex min-w-0 flex-col gap-0.5">
       {reviewers.map((u) => (
@@ -833,6 +852,7 @@ export function ReviewersCell({
           user={u}
           status={u.status}
           role={u.role}
+          reserveRole={anyRole}
           onClick={onClick ? () => onClick(u.login) : undefined}
           active={activeLogin === u.login}
         />

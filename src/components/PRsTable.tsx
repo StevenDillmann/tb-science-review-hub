@@ -296,7 +296,7 @@ export function PRsTable({
       },
       {
         accessorKey: "title",
-        size: 340,
+        size: 260,
         header: ({ column }) => (
           <button
             className="inline-flex items-center gap-1"
@@ -360,7 +360,7 @@ export function PRsTable({
       },
       {
         accessorKey: "dri",
-        size: 180,
+        size: 260,
         header: () => (
           <ColumnFilter
             title="REVIEWER"
