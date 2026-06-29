@@ -1,8 +1,15 @@
 name: Rebuild & Deploy
 
 on:
+  # Primary: fired by the upstream repo (terminal-bench-science) the moment a
+  # PR / discussion / review / label changes — see its notify-dashboard.yml.
+  repository_dispatch:
+    types: [upstream-changed]
+  # Backup: a slow safety-net poll in case an upstream event is ever missed.
+  # (GitHub heavily throttles short cron intervals, so a tight */15 isn't
+  # honoured anyway — hourly is what it reliably runs.)
   schedule:
-    - cron: "*/15 * * * *"
+    - cron: "17 * * * *"
   workflow_dispatch:
   push:
     branches: [main]
