@@ -209,93 +209,104 @@ export function BallChip({
   return <span className="text-xs text-muted-foreground">—</span>
 }
 
+// Glyph for a single slot's status. `locked` renders the final gate faintly
+// when it isn't reachable yet.
+function stageGlyph(status: ReviewState | "empty" | "locked"): ReactNode {
+  if (status === "approved")
+    return <Check className="h-3.5 w-3.5 text-green-700 dark:text-green-400" strokeWidth={3} />
+  if (status === "changes_requested")
+    return <RotateCw className="h-3 w-3 text-red-700 dark:text-red-400" strokeWidth={2.5} />
+  if (status === "pending")
+    return <Circle className="h-3 w-3 text-amber-600 dark:text-amber-400" strokeWidth={2.5} />
+  if (status === "locked")
+    return <CircleDashed className="h-3 w-3 text-muted-foreground/50" strokeWidth={2} />
+  return <CircleDashed className="h-3 w-3 text-muted-foreground" strokeWidth={2} />
+}
+
+const STAGE_STATUS_WORD: Record<ReviewState, string> = {
+  approved: "approved",
+  changes_requested: "changes requested",
+  pending: "pending",
+}
+
 export function StageChip({
   stage,
   action,
+  reviewers,
   onClick,
   active,
 }: {
   stage: "1st" | "2nd" | "3rd" | "none"
-  /** Who needs to act on the *in-flight* pass right now.
-   *  - "reviewer" → yellow pending dot
-   *  - "author"   → amber iteration arrow (changes requested)
-   *  - null/undefined → outlined circle */
+  /** Fallback "whose court" hint when per-reviewer data isn't available
+   *  (merged/closed PRs, or PRs with no reviewer-slots marker). */
   action?: "reviewer" | "author" | null
+  /** Per-reviewer slot statuses (domain/general/final). When present, each dot
+   *  reflects its own slot's reviewer — so e.g. domain pending + general
+   *  changes-requested renders amber + red, not both the same colour. */
+  reviewers?: Reviewer[]
   onClick?: () => void
   active?: boolean
 }) {
   const filled = stage === "1st" ? 1 : stage === "2nd" ? 2 : stage === "3rd" ? 3 : 0
-  // Two reviewers (domain + general) review in parallel; a final reviewer signs
-  // off after both. The dots count approvals so far, not an ordered sequence.
   const baseLabels = [
     "No approvals yet",
     "1 of 2 parallel reviewers approved",
     "Both parallel reviewers approved",
     "Final reviewer approved",
   ]
+
+  // Resolve each slot's status. Prefer the actual per-slot reviewer; fall back
+  // to the approval count + global action when we have no role data.
+  const byRole = new Map<string, Reviewer>()
+  for (const r of reviewers ?? []) if (r.role) byRole.set(r.role, r)
+  const havePerSlot = byRole.size > 0
+
+  const parallelFilled = Math.min(filled, 2)
+  const finalReached = filled >= 2
+  const finalDone = filled >= 3
+
+  // domain → dot 0, general → dot 1.
+  const slotStatus = (role: "domain" | "general"): ReviewState | "empty" => {
+    if (havePerSlot) return byRole.get(role)?.status ?? "empty"
+    // Fallback: position-based fill + shared action colour.
+    const i = role === "domain" ? 0 : 1
+    if (i < parallelFilled) return "approved"
+    if (action === "author") return "changes_requested"
+    if (action === "reviewer") return "pending"
+    return "empty"
+  }
+
+  const finalStatus = (): ReviewState | "locked" => {
+    if (havePerSlot) {
+      const f = byRole.get("final")
+      if (f) return f.status
+      return finalDone ? "approved" : "locked"
+    }
+    if (finalDone) return "approved"
+    if (finalReached && action === "author") return "changes_requested"
+    if (finalReached && action === "reviewer") return "pending"
+    return "locked"
+  }
+
+  const d = slotStatus("domain")
+  const g = slotStatus("general")
+  const f = finalStatus()
+
+  // Build a precise tooltip from the resolved slot statuses.
   let title = baseLabels[filled]
-  if (filled < 3 && action === "author") {
+  if (havePerSlot) {
+    const parts: string[] = []
+    if (d !== "empty") parts.push(`domain ${STAGE_STATUS_WORD[d]}`)
+    if (g !== "empty") parts.push(`general ${STAGE_STATUS_WORD[g]}`)
+    if (f !== "locked") parts.push(`final ${STAGE_STATUS_WORD[f as ReviewState]}`)
+    if (parts.length) title = parts.join(" · ")
+  } else if (filled < 3 && action === "author") {
     title = `${baseLabels[filled]} · changes requested`
   } else if (filled < 3 && action === "reviewer") {
     title = `${baseLabels[filled]} · pending review`
   }
-  // The two parallel slots (domain + general) are in-flight together until both
-  // approve; the final slot is *gated* — it can't begin until both parallel
-  // ones fill. `filled` is the count of green slots: 0/1 fills the parallel
-  // pair, 2 means both parallel done (final now in-flight), 3 means final done.
-  const parallelFilled = Math.min(filled, 2)
-  const finalReached = filled >= 2 // both parallel approved → final slot active
-  const finalDone = filled >= 3
 
-  // Each parallel slot (domain + general) is independent: a filled one is a
-  // green check; every *un*filled one reflects whose court the review is in —
-  // both dots go amber when both parallel reviews are pending, both red on
-  // changes requested. (Once the final gate is reached, all parallel dots are
-  // green, so this only applies while finalReached is false.)
-  const parallelSlot = (i: number): ReactNode => {
-    if (i < parallelFilled) {
-      return (
-        <Check
-          className="h-3.5 w-3.5 text-green-700 dark:text-green-400"
-          strokeWidth={3}
-        />
-      )
-    }
-    if (action === "author") {
-      return (
-        <RotateCw className="h-3 w-3 text-red-700 dark:text-red-400" strokeWidth={2.5} />
-      )
-    }
-    if (action === "reviewer") {
-      return (
-        <Circle className="h-3 w-3 text-amber-600 dark:text-amber-400" strokeWidth={2.5} />
-      )
-    }
-    return <CircleDashed className="h-3 w-3 text-muted-foreground" strokeWidth={2} />
-  }
-
-  const finalSlot = (): ReactNode => {
-    if (finalDone) {
-      return (
-        <Check
-          className="h-3.5 w-3.5 text-green-700 dark:text-green-400"
-          strokeWidth={3}
-        />
-      )
-    }
-    if (finalReached && action === "author") {
-      return (
-        <RotateCw className="h-3 w-3 text-red-700 dark:text-red-400" strokeWidth={2.5} />
-      )
-    }
-    if (finalReached && action === "reviewer") {
-      return (
-        <Circle className="h-3 w-3 text-amber-600 dark:text-amber-400" strokeWidth={2.5} />
-      )
-    }
-    // Not yet reachable — render faintly so it reads as a locked gate.
-    return <CircleDashed className="h-3 w-3 text-muted-foreground/50" strokeWidth={2} />
-  }
+  const finalActive = havePerSlot ? f !== "locked" : finalReached
 
   // Fixed-width cells so the Stage column stays aligned regardless of glyph.
   const cell = (node: ReactNode, key: string) => (
@@ -307,16 +318,16 @@ export function StageChip({
   return (
     <Clickable onClick={onClick} active={active} title={title}>
       <span className="inline-flex items-center gap-0.5">
-        {cell(parallelSlot(0), "p0")}
-        {cell(parallelSlot(1), "p1")}
+        {cell(stageGlyph(d), "p0")}
+        {cell(stageGlyph(g), "p1")}
         <ChevronRight
           className={cn(
             "h-3 w-3 shrink-0",
-            finalReached ? "text-muted-foreground" : "text-muted-foreground/40",
+            finalActive ? "text-muted-foreground" : "text-muted-foreground/40",
           )}
           strokeWidth={2}
         />
-        {cell(finalSlot(), "f")}
+        {cell(stageGlyph(f), "f")}
       </span>
     </Clickable>
   )

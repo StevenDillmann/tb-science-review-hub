@@ -141,7 +141,7 @@ function Body({ pr }: { pr: PR }) {
             <FieldChip subfield={pr.subfield} fallback={pr.field} />
           </span>
           <LabeledChip label="Stage">
-            <StageChip stage={pr.review_stage} action={pr.ball_in_court} />
+            <StageChip stage={pr.review_stage} action={pr.ball_in_court} reviewers={pr.reviewers} />
           </LabeledChip>
           {pr.reviewers.length > 0 && (
             <LabeledChip label="Reviewers">

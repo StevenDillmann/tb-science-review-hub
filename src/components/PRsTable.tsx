@@ -397,6 +397,7 @@ export function PRsTable({
           <StageChip
             stage={row.original.review_stage}
             action={row.original.ball_in_court}
+            reviewers={row.original.reviewers}
           />
         ),
       },
