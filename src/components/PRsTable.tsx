@@ -354,7 +354,7 @@ export function PRsTable({
       },
       {
         accessorKey: "subfield",
-        size: 220,
+        size: 185,
         header: () => (
           <FieldColumnFilter value={field} onChange={setField} counts={fieldCounts} />
         ),
@@ -364,7 +364,8 @@ export function PRsTable({
       },
       {
         accessorKey: "author",
-        size: 180,
+        // Comfortably fits the longest handle (AllenGrahamHart) + avatar.
+        size: 195,
         header: () => (
           <ColumnFilter
             title="AUTHOR"
@@ -377,7 +378,9 @@ export function PRsTable({
       },
       {
         accessorKey: "dri",
-        size: 260,
+        // Fits the longest handle (AllenGrahamHart) after the role label +
+        // avatar; longer names truncate with an ellipsis (min-w-0 truncate).
+        size: 290,
         header: () => (
           <ColumnFilter
             title="REVIEWER"
@@ -415,7 +418,7 @@ export function PRsTable({
       },
       {
         accessorKey: "ball_in_court",
-        size: 100,
+        size: 90,
         header: () => (
           <ColumnFilter
             title="ACTION"

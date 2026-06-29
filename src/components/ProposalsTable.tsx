@@ -322,7 +322,7 @@ export function ProposalsTable({
       },
       {
         accessorKey: "subfield",
-        size: 220,
+        size: 185,
         header: () => (
           <FieldColumnFilter value={field} onChange={setField} counts={fieldCounts} />
         ),
