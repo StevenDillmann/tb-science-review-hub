@@ -245,7 +245,7 @@ export function PRsTable({
       if (ci && (p.ci ?? "") !== ci) return false
       if (needle) {
         const hay =
-          `${p.title} ${p.author.login} ${p.reviewers.map((d) => d.login).join(" ")} ${p.field ?? ""}`.toLowerCase()
+          `${p.number} ${p.title} ${p.author.login} ${p.reviewers.map((d) => d.login).join(" ")} ${p.field ?? ""}`.toLowerCase()
         if (!hay.includes(needle)) return false
       }
       return true

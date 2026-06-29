@@ -242,7 +242,8 @@ export function ProposalsTable({
       }
       if (human && p.status !== human) return false
       if (needle) {
-        const hay = `${p.title} ${p.author.login} ${p.field ?? ""}`.toLowerCase()
+        const hay =
+          `${p.proposal_number ?? p.number} ${p.title} ${p.author.login} ${p.field ?? ""}`.toLowerCase()
         if (!hay.includes(needle)) return false
       }
       return true
