@@ -32,12 +32,10 @@ DOMAIN_LABEL_SET = {
 }
 
 # Parallel review model: a "domain" reviewer and a "general" reviewer review
-# concurrently, then a "final" reviewer signs off after both approve. The
-# review_stage values are kept as opaque count-keys for the UI (which renders a
-# row of filled dots): "1st"/"2nd" mean 1/2 of the two parallel approvals so
-# far, and "3rd" means the final reviewer has approved.
-PARALLEL_APPROVAL_LABELS = ("domain review ✅", "general review ✅")
-FINAL_APPROVAL_LABEL = "final review ✅"
+# concurrently, then a "final" reviewer signs off after both approve. The UI
+# renders a row of filled dots; review_stage is an opaque count-key derived
+# from the actual reviewer statuses (see derive_review_stage) — NOT from the
+# `… review ✅` labels, which drift out of sync.
 
 # Only first-party reviews count as "reviewers" in the dashboard. Bot and
 # drive-by reviews (Devin, Copilot, external commenters) come in as NONE or
@@ -150,68 +148,46 @@ def parse_proposal_number(title: str) -> tuple[int | None, str]:
     return None, title
 
 
-def derive_review_stage(
-    labels: list[str], reviewers: list[dict[str, Any]] | None = None
-) -> str:
-    """Review progress as a count-key for the UI dots.
+def derive_review_stage(reviewers: list[dict[str, Any]]) -> str:
+    """Review progress as a count-key for the UI Stage dots.
 
-    Source of truth is the ACTUAL review state (`reviewers`), not the
-    `… review ✅` labels — labels drift out of sync (a reviewer re-requested
-    after approving still carries a stale ✅). We count approvals among the
-    parallel slots (domain + general); the final reviewer approving → "3rd".
+    Derived ONLY from the `reviewers` list — the exact same data the Reviewer
+    column renders — so the Stage dots can never disagree with the column.
+    Labels are deliberately not consulted (they drift out of sync).
 
-    Labels are used only as a fallback for PRs with no reviewer-slot data
-    (e.g. merged/closed PRs, or PRs predating the marker), where the live
-    review list isn't reconstructed.
-
-      "none" → 0 approvals · "1st" → 1 · "2nd" → both parallel · "3rd" → final
+      "none" → 0 approvals · "1st" → 1 parallel · "2nd" → both parallel
+      "3rd"  → final reviewer approved
     """
-    if reviewers:
-        by_role = {r["role"]: r for r in reviewers if r.get("role")}
-        if by_role:
-            final = by_role.get("final")
-            if final and final.get("status") == "approved":
-                return "3rd"
-            approvals = sum(
-                1
-                for role in ("domain", "general")
-                if (by_role.get(role) or {}).get("status") == "approved"
-            )
-            return {2: "2nd", 1: "1st"}.get(approvals, "none")
-        # Reviewers present but no role marker: count approvals among them.
-        approvals = sum(1 for r in reviewers if r.get("status") == "approved")
-        return {2: "2nd", 1: "1st"}.get(min(approvals, 2), "none")
-
-    # Fallback: labels (no live reviewer data, e.g. merged PRs).
-    if FINAL_APPROVAL_LABEL in labels:
-        return "3rd"
-    approvals = sum(1 for lab in PARALLEL_APPROVAL_LABELS if lab in labels)
-    return {2: "2nd", 1: "1st"}.get(approvals, "none")
+    if not reviewers:
+        return "none"
+    by_role = {r["role"]: r for r in reviewers if r.get("role")}
+    if by_role:
+        final = by_role.get("final")
+        if final and final.get("status") == "approved":
+            return "3rd"
+        approvals = sum(
+            1
+            for role in ("domain", "general")
+            if (by_role.get(role) or {}).get("status") == "approved"
+        )
+        return {2: "2nd", 1: "1st"}.get(approvals, "none")
+    # No role marker: count approvals among the reviewers directly.
+    approvals = sum(1 for r in reviewers if r.get("status") == "approved")
+    return {2: "2nd", 1: "1st"}.get(min(approvals, 2), "none")
 
 
-def derive_ball_in_court(
-    labels: list[str], reviewers: list[dict[str, Any]] | None = None
-) -> str | None:
-    """Whose court the PR is in, derived from ACTUAL review state.
+def derive_ball_in_court(reviewers: list[dict[str, Any]]) -> str | None:
+    """Whose court the PR is in — derived ONLY from `reviewers` (same data as
+    the column), never from labels:
 
-    - any assigned reviewer has an outstanding changes-request → author
-    - all assigned reviewers have approved (nothing pending)     → None (done)
-    - otherwise someone still owes a review                      → reviewer
-
-    Labels (`waiting on …`) are only the fallback when there's no live reviewer
-    data, since they routinely drift out of sync with real reviews.
+    - any reviewer has an outstanding changes-request → author
+    - someone still owes a review (pending)           → reviewer
+    - all reviewers approved (nothing pending)         → None (done)
     """
-    if reviewers:
-        statuses = [r.get("status") for r in reviewers]
-        if "changes_requested" in statuses:
-            return "author"
-        if any(s == "pending" for s in statuses):
-            return "reviewer"
-        return None  # all approved → nothing pending
-
-    if "waiting on author" in labels:
+    statuses = [r.get("status") for r in reviewers]
+    if "changes_requested" in statuses:
         return "author"
-    if "waiting on reviewer" in labels:
+    if any(s == "pending" for s in statuses):
         return "reviewer"
     return None
 
@@ -1049,7 +1025,12 @@ def build_prs(
         # Per-reviewer status (approved / pending / changes), with role pulled
         # from the hidden reviewer-slots marker where the PR has one.
         reviewer_roles = parse_reviewer_slots(comments)
-        reviewers = build_reviewers(n, reviewer_roles)
+        # `reviewers` is the single source of truth for the Reviewer column,
+        # the Stage dots, and ball-in-court. We only surface reviewers for open
+        # PRs (closed/merged history isn't actionable), so blank it once here —
+        # stage/ball then derive from the SAME list the column shows, and can
+        # never disagree with it.
+        reviewers = build_reviewers(n, reviewer_roles) if state == "open" else []
         trials = parse_trial_results(comments)
         rubric = parse_rubric_review(comments)
         cheat = parse_cheat_results(comments)
@@ -1079,11 +1060,11 @@ def build_prs(
             "domain": domain,
             "subfield": subfield,
             "field": raw_field,
-            "review_stage": derive_review_stage(labels, reviewers),
-            "ball_in_court": derive_ball_in_court(labels, reviewers) if state == "open" else None,
+            "review_stage": derive_review_stage(reviewers),
+            "ball_in_court": derive_ball_in_court(reviewers),
             "dri": dri if state == "open" else None,
             "dris": dris if state == "open" else [],
-            "reviewers": reviewers if state == "open" else [],
+            "reviewers": reviewers,  # already [] for non-open PRs
             "age_days": age_days(n["createdAt"], now),
             "updated_days": age_days(n["updatedAt"], now),
             "merged_days": age_days(n["mergedAt"], now) if n.get("mergedAt") else None,
