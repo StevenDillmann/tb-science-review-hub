@@ -260,8 +260,8 @@ export function StageChip({
   /** Fallback "whose court" hint when per-reviewer data isn't available
    *  (merged/closed PRs, or PRs with no reviewer-slots marker). */
   action?: "reviewer" | "author" | null
-  /** Per-reviewer slot statuses (domain/general/final). When present, each dot
-   *  reflects its own slot's reviewer — so e.g. domain pending + general
+  /** Per-reviewer slot statuses (domain/technical/final). When present, each dot
+   *  reflects its own slot's reviewer — so e.g. domain pending + technical
    *  changes-requested renders amber + red, not both the same colour. */
   reviewers?: Reviewer[]
   onClick?: () => void
@@ -289,8 +289,8 @@ export function StageChip({
   const finalReached = filled >= 2
   const finalDone = filled >= 3
 
-  // domain → dot 0, general → dot 1.
-  const slotStatus = (role: "domain" | "general"): ReviewState | "empty" => {
+  // domain → dot 0, technical → dot 1.
+  const slotStatus = (role: "domain" | "technical"): ReviewState | "empty" => {
     if (havePerSlot) return byRole.get(role)?.status ?? "empty"
     const i = role === "domain" ? 0 : 1
     // No role marker but we have reviewers: map each reviewer to a dot by
@@ -317,7 +317,7 @@ export function StageChip({
   }
 
   const d = slotStatus("domain")
-  const g = slotStatus("general")
+  const g = slotStatus("technical")
   const f = finalStatus()
 
   // Build a precise tooltip from the resolved slot statuses.
@@ -325,7 +325,7 @@ export function StageChip({
   if (havePerSlot) {
     const parts: string[] = []
     if (d !== "empty") parts.push(`domain ${STAGE_STATUS_WORD[d]}`)
-    if (g !== "empty") parts.push(`general ${STAGE_STATUS_WORD[g]}`)
+    if (g !== "empty") parts.push(`technical ${STAGE_STATUS_WORD[g]}`)
     if (f !== "locked") parts.push(`final ${STAGE_STATUS_WORD[f as ReviewState]}`)
     if (parts.length) title = parts.join(" · ")
   } else if (filled < 3 && action === "author") {
@@ -504,7 +504,7 @@ const MODEL_LABEL: Record<string, string> = {
 // a leading fixed-width uppercase muted tag so reviewer rows line up.
 const ROLE_LABEL: Record<string, string> = {
   domain: "DOMAIN",
-  general: "GENERAL",
+  technical: "TECHNICAL",
   final: "FINAL",
 }
 
@@ -798,7 +798,7 @@ export function UserCell({
   active?: boolean
   /** When set, render a trailing status glyph (reviewer rows). */
   status?: ReviewState
-  /** When set, render a small slot-role tag (domain/general/final). */
+  /** When set, render a small slot-role tag (domain/technical/final). */
   role?: ReviewerRole
   /** Reserve the role-label slot even when this row has no role, so siblings
    *  with roles keep avatars aligned. */
@@ -863,7 +863,7 @@ export function UserCell({
   )
 }
 
-/** Renders every reviewer on a PR (domain + general, then final) as a stacked
+/** Renders every reviewer on a PR (domain + technical, then final) as a stacked
  *  list, each with their real review status (✓/◌/✗) and slot role. In the
  *  parallel review model a PR has multiple reviewers at once, and approvers
  *  that GitHub dropped from the request list still belong here. */

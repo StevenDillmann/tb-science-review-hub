@@ -31,7 +31,7 @@ DOMAIN_LABEL_SET = {
     "mathematical-sciences",
 }
 
-# Parallel review model: a "domain" reviewer and a "general" reviewer review
+# Parallel review model: a "domain" reviewer and a "technical" reviewer review
 # concurrently, then a "final" reviewer signs off after both approve. The UI
 # renders a row of filled dots; review_stage is an opaque count-key derived
 # from the actual reviewer statuses (see derive_review_stage) — NOT from the
@@ -167,7 +167,7 @@ def derive_review_stage(reviewers: list[dict[str, Any]]) -> str:
             return "3rd"
         approvals = sum(
             1
-            for role in ("domain", "general")
+            for role in ("domain", "technical")
             if (by_role.get(role) or {}).get("status") == "approved"
         )
         return {2: "2nd", 1: "1st"}.get(approvals, "none")
@@ -209,16 +209,19 @@ def derive_status(labels: list[str]) -> str:
 
 # Hidden marker comment that records the slot→handle mapping for the parallel
 # review model, e.g.
-#   <!-- reviewer-slots: {"domain": "alice", "general": "bob", "final": ""} -->
+#   <!-- reviewer-slots: {"domain": "alice", "technical": "bob", "final": ""} -->
 # Written by the upstream slot_marker.py. Absent on PRs predating that model.
+# The "technical" slot was formerly named "general"; we still read that legacy
+# key from older markers and normalise it to "technical".
 REVIEWER_SLOTS_RE = re.compile(r"<!--\s*reviewer-slots:\s*(\{.*?\})\s*-->", re.DOTALL)
 
 
 def parse_reviewer_slots(comments: list[dict[str, Any]]) -> dict[str, str]:
     """Return {login: role} from the latest reviewer-slots marker comment.
 
-    role ∈ {"domain", "general", "final"}. Empty/missing slots are skipped.
-    Returns {} when no marker is present (most pre-parallel-model PRs).
+    role ∈ {"domain", "technical", "final"}. Empty/missing slots are skipped.
+    A legacy "general" key is read as "technical". Returns {} when no marker is
+    present (most pre-parallel-model PRs).
     """
     for c in reversed(comments):  # most recent marker wins
         m = REVIEWER_SLOTS_RE.search(c.get("body", "") or "")
@@ -228,8 +231,11 @@ def parse_reviewer_slots(comments: list[dict[str, Any]]) -> dict[str, str]:
             slots = json.loads(m.group(1))
         except json.JSONDecodeError:
             continue
+        # Legacy "general" → "technical"; prefer the new key if both present.
+        if "general" in slots and "technical" not in slots:
+            slots["technical"] = slots.pop("general")
         out: dict[str, str] = {}
-        for role in ("domain", "general", "final"):
+        for role in ("domain", "technical", "final"):
             handle = (slots.get(role) or "").strip()
             if handle:
                 out[handle] = role
@@ -307,12 +313,12 @@ def build_reviewers(
         else:
             status[login] = review_status.get(login, "pending")
 
-    # Role comes from the hidden slot marker (domain/general/final) where the
+    # Role comes from the hidden slot marker (domain/technical/final) where the
     # PR has one; None otherwise. Always display in slot order:
-    # domain → general → final (then any unknown-role reviewers), so the cell
+    # domain → technical → final (then any unknown-role reviewers), so the cell
     # reads consistently regardless of who approved first.
     roles = roles or {}
-    _role_order = {"domain": 0, "general": 1, "final": 2}
+    _role_order = {"domain": 0, "technical": 1, "final": 2}
 
     out = [
         {
@@ -997,7 +1003,7 @@ def build_prs(
             )
 
         # In the parallel review model a PR has multiple reviewers at once
-        # (a domain reviewer + a general reviewer, then a final reviewer).
+        # (a domain reviewer + a technical reviewer, then a final reviewer).
         # Collect everyone with an active review request; fall back to the
         # assignees when GitHub has dropped the request after a submitted
         # review. De-duped, order preserved. `dri` keeps the first for any

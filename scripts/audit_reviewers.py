@@ -77,15 +77,19 @@ def classify(login: str, field: str, pool: dict) -> str:
     by_field = pool.get("reviewers_by_field") or {}
     field_pool = {x.lower() for x in (by_field.get(field) or [])}
     backup = {x.lower() for x in (pool.get("reviewers_domain_backup") or [])}
-    general = {x.lower() for x in (pool.get("reviewers_general") or [])}
+    # The "technical" pool was formerly named "general"; read both.
+    technical = {
+        x.lower()
+        for x in (pool.get("reviewers_technical") or pool.get("reviewers_general") or [])
+    }
     final = {x.lower() for x in (pool.get("reviewers_final") or [])}
     lo = login.lower()
     if lo in field_pool:
         return "✓in-field"
     if lo in backup:
         return "~backup"
-    if lo in general:
-        return "general"
+    if lo in technical:
+        return "technical"
     if lo in final:
         return "final"
     return "⚠off-pool"

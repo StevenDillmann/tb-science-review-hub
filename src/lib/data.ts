@@ -7,7 +7,7 @@ export type ReviewState = "approved" | "changes_requested" | "pending"
 
 /** Reviewer slot/role from the upstream hidden marker; null when the PR has no
  *  marker (most pre-parallel-model PRs). */
-export type ReviewerRole = "domain" | "general" | "final" | null
+export type ReviewerRole = "domain" | "technical" | "final" | null
 
 export type Reviewer = User & {
   status: ReviewState
