@@ -20,6 +20,9 @@ permissions:
   id-token: write
 
 concurrency:
+  # Queue rebuilds, never cancel mid-flight: cancelling a Pages deploy in
+  # progress can leave it half-applied. Bursts are already debounced upstream
+  # (notify-dashboard), and rebuilds are idempotent (last one wins).
   group: pages
   cancel-in-progress: false
 
