@@ -266,14 +266,19 @@ export function PRsTable({
       .map(([value, count]) => ({ value, label: value, count }))
   }, [stateFiltered])
   const driOptions = useMemo(() => {
-    // Count over every reviewer on each PR, not just the first.
-    const c: Record<string, number> = {}
+    // Count each reviewer's *pending* PRs — i.e. how many are waiting on their
+    // action ("to review" load) — so the dropdown surfaces whose turn it is.
+    const pending: Record<string, number> = {}
+    const total: Record<string, number> = {}
     for (const p of stateFiltered) {
-      for (const d of p.reviewers) c[d.login] = (c[d.login] ?? 0) + 1
+      for (const d of p.reviewers) {
+        total[d.login] = (total[d.login] ?? 0) + 1
+        if (d.status === "pending") pending[d.login] = (pending[d.login] ?? 0) + 1
+      }
     }
-    return Object.entries(c)
-      .sort((a, b) => b[1] - a[1])
-      .map(([value, count]) => ({ value, label: value, count }))
+    return Object.keys(total)
+      .sort((a, b) => (pending[b] ?? 0) - (pending[a] ?? 0) || total[b] - total[a])
+      .map((value) => ({ value, label: value, count: pending[value] ?? 0 }))
   }, [stateFiltered])
 
   const columns = useMemo<ColumnDef<PR>[]>(

@@ -159,7 +159,18 @@ def derive_review_stage(labels: list[str]) -> str:
     return {2: "2nd", 1: "1st"}.get(approvals, "none")
 
 
-def derive_ball_in_court(labels: list[str]) -> str | None:
+def derive_ball_in_court(
+    labels: list[str], reviewers: list[dict[str, Any]] | None = None
+) -> str | None:
+    """Whose court the PR is in.
+
+    Actual review state wins over the (sometimes stale) `waiting on …` label:
+    if any assigned reviewer has an outstanding changes-request, the ball is on
+    the author regardless of what the label says. Otherwise fall back to the
+    label.
+    """
+    if reviewers and any(r.get("status") == "changes_requested" for r in reviewers):
+        return "author"
     if "waiting on author" in labels:
         return "author"
     if "waiting on reviewer" in labels:
@@ -1031,7 +1042,7 @@ def build_prs(
             "subfield": subfield,
             "field": raw_field,
             "review_stage": derive_review_stage(labels),
-            "ball_in_court": derive_ball_in_court(labels) if state == "open" else None,
+            "ball_in_court": derive_ball_in_court(labels, reviewers) if state == "open" else None,
             "dri": dri if state == "open" else None,
             "dris": dris if state == "open" else [],
             "reviewers": reviewers if state == "open" else [],
