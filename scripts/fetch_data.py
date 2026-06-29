@@ -150,11 +150,41 @@ def parse_proposal_number(title: str) -> tuple[int | None, str]:
     return None, title
 
 
-def derive_review_stage(labels: list[str]) -> str:
-    # Final reviewer approved → fully reviewed (all dots filled).
+def derive_review_stage(
+    labels: list[str], reviewers: list[dict[str, Any]] | None = None
+) -> str:
+    """Review progress as a count-key for the UI dots.
+
+    Source of truth is the ACTUAL review state (`reviewers`), not the
+    `… review ✅` labels — labels drift out of sync (a reviewer re-requested
+    after approving still carries a stale ✅). We count approvals among the
+    parallel slots (domain + general); the final reviewer approving → "3rd".
+
+    Labels are used only as a fallback for PRs with no reviewer-slot data
+    (e.g. merged/closed PRs, or PRs predating the marker), where the live
+    review list isn't reconstructed.
+
+      "none" → 0 approvals · "1st" → 1 · "2nd" → both parallel · "3rd" → final
+    """
+    if reviewers:
+        by_role = {r["role"]: r for r in reviewers if r.get("role")}
+        if by_role:
+            final = by_role.get("final")
+            if final and final.get("status") == "approved":
+                return "3rd"
+            approvals = sum(
+                1
+                for role in ("domain", "general")
+                if (by_role.get(role) or {}).get("status") == "approved"
+            )
+            return {2: "2nd", 1: "1st"}.get(approvals, "none")
+        # Reviewers present but no role marker: count approvals among them.
+        approvals = sum(1 for r in reviewers if r.get("status") == "approved")
+        return {2: "2nd", 1: "1st"}.get(min(approvals, 2), "none")
+
+    # Fallback: labels (no live reviewer data, e.g. merged PRs).
     if FINAL_APPROVAL_LABEL in labels:
         return "3rd"
-    # Otherwise count how many of the two parallel reviewers have approved.
     approvals = sum(1 for lab in PARALLEL_APPROVAL_LABELS if lab in labels)
     return {2: "2nd", 1: "1st"}.get(approvals, "none")
 
@@ -162,15 +192,23 @@ def derive_review_stage(labels: list[str]) -> str:
 def derive_ball_in_court(
     labels: list[str], reviewers: list[dict[str, Any]] | None = None
 ) -> str | None:
-    """Whose court the PR is in.
+    """Whose court the PR is in, derived from ACTUAL review state.
 
-    Actual review state wins over the (sometimes stale) `waiting on …` label:
-    if any assigned reviewer has an outstanding changes-request, the ball is on
-    the author regardless of what the label says. Otherwise fall back to the
-    label.
+    - any assigned reviewer has an outstanding changes-request → author
+    - all assigned reviewers have approved (nothing pending)     → None (done)
+    - otherwise someone still owes a review                      → reviewer
+
+    Labels (`waiting on …`) are only the fallback when there's no live reviewer
+    data, since they routinely drift out of sync with real reviews.
     """
-    if reviewers and any(r.get("status") == "changes_requested" for r in reviewers):
-        return "author"
+    if reviewers:
+        statuses = [r.get("status") for r in reviewers]
+        if "changes_requested" in statuses:
+            return "author"
+        if any(s == "pending" for s in statuses):
+            return "reviewer"
+        return None  # all approved → nothing pending
+
     if "waiting on author" in labels:
         return "author"
     if "waiting on reviewer" in labels:
@@ -1041,7 +1079,7 @@ def build_prs(
             "domain": domain,
             "subfield": subfield,
             "field": raw_field,
-            "review_stage": derive_review_stage(labels),
+            "review_stage": derive_review_stage(labels, reviewers),
             "ball_in_court": derive_ball_in_court(labels, reviewers) if state == "open" else None,
             "dri": dri if state == "open" else None,
             "dris": dris if state == "open" else [],
