@@ -38,6 +38,7 @@ import {
   FieldChip,
   RubricChip,
   StageChip,
+  StatePill,
   TrialsChip,
   UserCell,
   ReviewersCell,
@@ -288,15 +289,18 @@ export function PRsTable({
         size: 70,
         header: "#",
         cell: ({ row }) => (
-          <a
-            href={row.original.url}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex items-center gap-1 font-mono text-xs text-muted-foreground hover:underline"
-          >
-            {row.original.number}
-            <ExternalLink className="h-3 w-3" />
-          </a>
+          <span className="inline-flex flex-col items-start gap-1">
+            <a
+              href={row.original.url}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1 font-mono text-xs text-muted-foreground hover:underline"
+            >
+              {row.original.number}
+              <ExternalLink className="h-3 w-3" />
+            </a>
+            <StatePill tone={row.original.state} label={row.original.state} />
+          </span>
         ),
       },
       {

@@ -209,6 +209,31 @@ export function BallChip({
   return <span className="text-xs text-muted-foreground">—</span>
 }
 
+// Small lifecycle pill rendered under the # in the PR / proposal tables.
+// GitHub-ish palette: open=green, merged/approved=done, closed/declined=muted.
+type PillTone = "open" | "merged" | "closed" | "approved" | "declined"
+
+const STATE_PILL_TONE: Record<PillTone, string> = {
+  open: "bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300",
+  merged: "bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300",
+  approved: "bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300",
+  closed: "bg-muted text-muted-foreground",
+  declined: "bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300",
+}
+
+export function StatePill({ tone, label }: { tone: PillTone; label: string }) {
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center rounded px-1.5 py-px text-[10px] font-medium uppercase tracking-wide",
+        STATE_PILL_TONE[tone],
+      )}
+    >
+      {label}
+    </span>
+  )
+}
+
 // Glyph for a single slot's status. `locked` renders the final gate faintly
 // when it isn't reachable yet.
 function stageGlyph(status: ReviewState | "empty" | "locked"): ReactNode {
@@ -260,6 +285,10 @@ export function StageChip({
   const byRole = new Map<string, Reviewer>()
   for (const r of reviewers ?? []) if (r.role) byRole.set(r.role, r)
   const havePerSlot = byRole.size > 0
+  // Reviewers without a role marker, in order — used to fill the parallel dots
+  // positionally so the number of lit dots matches the actual reviewer count
+  // (a single reviewer lights ONE dot, not both).
+  const unroled = (reviewers ?? []).filter((r) => !r.role)
 
   const parallelFilled = Math.min(filled, 2)
   const finalReached = filled >= 2
@@ -268,8 +297,12 @@ export function StageChip({
   // domain → dot 0, general → dot 1.
   const slotStatus = (role: "domain" | "general"): ReviewState | "empty" => {
     if (havePerSlot) return byRole.get(role)?.status ?? "empty"
-    // Fallback: position-based fill + shared action colour.
     const i = role === "domain" ? 0 : 1
+    // No role marker but we have reviewers: map each reviewer to a dot by
+    // position; dots past the reviewer count stay empty.
+    if (unroled.length) return unroled[i]?.status ?? "empty"
+    // No reviewer data at all (merged/closed PRs): fall back to the approval
+    // count + shared action colour.
     if (i < parallelFilled) return "approved"
     if (action === "author") return "changes_requested"
     if (action === "reviewer") return "pending"

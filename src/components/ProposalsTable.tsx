@@ -21,7 +21,7 @@ import {
 import { DOMAIN_LABELS, type Domain, type Proposal } from "@/lib/data"
 import { useTaxonomy } from "@/lib/taxonomy"
 import { cn } from "@/lib/utils"
-import { FieldChip, HumanReviewChip, LLMReviewChip, UserCell } from "./Chips"
+import { FieldChip, HumanReviewChip, LLMReviewChip, StatePill, UserCell } from "./Chips"
 import { ColumnFilter } from "./ColumnFilter"
 import { FieldColumnFilter } from "./FieldColumnFilter"
 import { FilterChip, SearchInput } from "./Filters"
@@ -268,17 +268,34 @@ export function ProposalsTable({
       {
         accessorKey: "proposal_number",
         header: "#",
-        cell: ({ row }) => (
-          <a
-            href={row.original.url}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex items-center gap-1 font-mono text-xs text-muted-foreground hover:underline"
-          >
-            {row.original.proposal_number ?? row.original.number}
-            <ExternalLink className="h-3 w-3" />
-          </a>
-        ),
+        cell: ({ row }) => {
+          const p = row.original
+          // open → open; approved → approved; declined (rejected) → declined;
+          // otherwise closed-without-decision → closed.
+          const tone =
+            p.state === "open"
+              ? "open"
+              : p.status === "approved"
+                ? "approved"
+                : p.status === "rejected"
+                  ? "declined"
+                  : "closed"
+          const label = tone === "declined" ? "declined" : tone
+          return (
+            <span className="inline-flex flex-col items-start gap-1">
+              <a
+                href={p.url}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1 font-mono text-xs text-muted-foreground hover:underline"
+              >
+                {p.proposal_number ?? p.number}
+                <ExternalLink className="h-3 w-3" />
+              </a>
+              <StatePill tone={tone} label={label} />
+            </span>
+          )
+        },
         size: 70,
       },
       {
