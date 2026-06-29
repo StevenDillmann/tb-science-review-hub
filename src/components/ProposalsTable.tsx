@@ -270,17 +270,10 @@ export function ProposalsTable({
         header: "#",
         cell: ({ row }) => {
           const p = row.original
-          // open → open; approved → approved; declined (rejected) → declined;
-          // otherwise closed-without-decision → closed.
-          const tone =
-            p.state === "open"
-              ? "open"
-              : p.status === "approved"
-                ? "approved"
-                : p.status === "rejected"
-                  ? "declined"
-                  : "closed"
-          const label = tone === "declined" ? "declined" : tone
+          // 3-state: open → open; closed+approved → approved; any other
+          // closed (declined, withdrawn, no decision) → declined.
+          const tone: "open" | "approved" | "declined" =
+            p.state === "open" ? "open" : p.status === "approved" ? "approved" : "declined"
           return (
             <span className="inline-flex flex-col items-start gap-1">
               <a
@@ -292,7 +285,7 @@ export function ProposalsTable({
                 {p.proposal_number ?? p.number}
                 <ExternalLink className="h-3 w-3" />
               </a>
-              <StatePill tone={tone} label={label} />
+              <StatePill tone={tone} label={tone} />
             </span>
           )
         },
