@@ -176,18 +176,20 @@ def derive_review_stage(reviewers: list[dict[str, Any]]) -> str:
     return {2: "2nd", 1: "1st"}.get(min(approvals, 2), "none")
 
 
-def derive_ball_in_court(reviewers: list[dict[str, Any]]) -> str | None:
-    """Whose court the PR is in — derived ONLY from `reviewers` (same data as
-    the column), never from labels:
+def derive_ball_in_court(labels: list[str]) -> str | None:
+    """Whose court the PR is in — taken straight from the GitHub workflow label.
 
-    - any reviewer has an outstanding changes-request → author
-    - someone still owes a review (pending)           → reviewer
-    - all reviewers approved (nothing pending)         → None (done)
+    The `waiting on …` labels are the team's source of truth for whose turn it
+    is, and they track the live state (e.g. an author reply flips the label
+    even though the reviewer's stale CHANGES_REQUESTED review stays sticky).
+
+    - "waiting on author"   → author
+    - "waiting on reviewer" → reviewer
+    - neither label present  → None
     """
-    statuses = [r.get("status") for r in reviewers]
-    if "changes_requested" in statuses:
+    if "waiting on author" in labels:
         return "author"
-    if any(s == "pending" for s in statuses):
+    if "waiting on reviewer" in labels:
         return "reviewer"
     return None
 
@@ -1067,7 +1069,7 @@ def build_prs(
             "subfield": subfield,
             "field": raw_field,
             "review_stage": derive_review_stage(reviewers),
-            "ball_in_court": derive_ball_in_court(reviewers),
+            "ball_in_court": derive_ball_in_court(labels),
             "dri": dri if state == "open" else None,
             "dris": dris if state == "open" else [],
             "reviewers": reviewers,  # already [] for non-open PRs
